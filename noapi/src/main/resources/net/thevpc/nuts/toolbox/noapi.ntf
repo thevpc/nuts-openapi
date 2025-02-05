@@ -1,0 +1,12 @@
+##) noapi:
+Open API Documentation Generation Tool
+
+###) SYNOPSIS:
+
+```sh noapi <command> <-options>```
+
+
+###) open api pdf:
+
+```sh noapi pdf [--open-api] <path>```
+    generate pdf from open api file (<path>)
