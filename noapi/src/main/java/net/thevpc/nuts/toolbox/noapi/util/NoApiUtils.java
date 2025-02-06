@@ -30,10 +30,25 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 public class NoApiUtils {
+
+    public static boolean isProjectMainFileName(String text) {
+        if (text.endsWith(".json") && !text.endsWith(".config.json")) {
+            return true;
+        }
+        return false;
+    }
+
+    public static boolean isProjectConfigFileName(String text) {
+        if (text.endsWith(".config.json")) {
+            return true;
+        }
+        return false;
+    }
+
     public static MdElement asText(String text) {
         List<MdElement> all = new ArrayList<>();
         int i = 0;
-        if(text!=null) {
+        if (text != null) {
             while (i < text.length()) {
                 int j = text.indexOf("##", i);
                 if (j < 0) {
@@ -234,7 +249,7 @@ public class NoApiUtils {
         if (NBlankable.isBlank(target) || target.getName().equals(".pdf") || target.getName().equals(".adoc") || target.getName().equals(".json")) {
             NPathNameParts smartParts = sourcePath.getNameParts(NPathExtensionType.SMART);
             target = parent.resolve(smartParts.getBaseName()
-                    + (NBlankable.isBlank(version)?"":("-" + version))
+                    + (NBlankable.isBlank(version) ? "" : ("-" + version))
                     + "." + smartParts.getExtension());
         }
         return NoApiUtils.addExtension(target, e, session);

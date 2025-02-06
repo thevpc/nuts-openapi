@@ -17,6 +17,10 @@ public class Vars {
         }
     }
 
+    public Map<String, String> toMap() {
+        return m;
+    }
+
     public String format(String a) {
         return NMsg.ofV(a, s -> m.get(s)).toString();
     }

@@ -2,17 +2,15 @@ package net.thevpc.nuts.toolbox.noapi.service.docs;
 
 import net.thevpc.nuts.*;
 import net.thevpc.nuts.elem.*;
+import net.thevpc.nuts.expr.*;
 import net.thevpc.nuts.io.NPath;
-import net.thevpc.nuts.util.NMaps;
+import net.thevpc.nuts.util.*;
 import net.thevpc.nuts.lib.md.*;
 import net.thevpc.nuts.toolbox.noapi.util.AppMessages;
 import net.thevpc.nuts.toolbox.noapi.util.NoApiUtils;
 import net.thevpc.nuts.toolbox.noapi.service.OpenApiParser;
 import net.thevpc.nuts.toolbox.noapi.util._StringUtils;
 import net.thevpc.nuts.toolbox.noapi.model.*;
-import net.thevpc.nuts.util.NBlankable;
-import net.thevpc.nuts.util.NMsg;
-import net.thevpc.nuts.util.NOptional;
 
 import java.io.InputStream;
 import java.time.LocalDate;
@@ -50,31 +48,67 @@ public class MainMarkdownGenerator {
         NElements prv = NElements.of();
         List<MdElement> all = new ArrayList<>();
         NObjectElement entries = obj.asObject().get();
+        Vars vars = _fillVars(entries, vars0);
+
         all.add(MdFactory.endParagraph());
         NObjectElement infoObj = entries.getObject("info").orElse(prv.ofEmptyObject());
         String documentTitle = infoObj.getString("title").orNull();
-        doc.setTitle(documentTitle);
+        Templater templater = new Templater(vars.toMap());
+        doc.setTitle(templater.prepareString(documentTitle));
         String documentVersion = infoObj.getString("version").orNull();
-        doc.setVersion(documentVersion);
+        doc.setVersion(templater.prepareString(documentVersion));
 
-        all.add(MdFactory.title(1, documentTitle));
+        all.add(MdFactory.title(1, templater.prepareString(documentTitle)));
 //        all.add(new MdImage(null,null,"Logo, 64,64","./logo.png"));
 //        all.add(MdFactory.endParagraph());
 //        all.add(MdFactory.seq(NoApiUtils.asText("API Reference")));
-        Vars vars = _fillVars(entries, vars0);
         List<TypeCrossRef> typeCrossRefs = new ArrayList<>();
-        _fillIntroduction(entries, all, vars);
-        _fillConfigVars(entries, all, vars);
-        _fillServerList(entries, all, vars);
-        _fillHeaders(entries, all, vars);
-        _fillSecuritySchemes(entries, all, vars);
-        _fillApiPaths(entries, all, vars, typeCrossRefs);
-        _fillSchemaTypes(entries, all, vars, typeCrossRefs);
+        _fillIntroduction(entries, all, vars, templater);
+        _fillConfigVars(entries, all, vars, templater);
+        _fillServerList(entries, all, vars, templater);
+        _fillHeaders(entries, all, vars, templater);
+        _fillSecuritySchemes(entries, all, vars, templater);
+        _fillApiPaths(entries, all, vars, typeCrossRefs, templater);
+        _fillSchemaTypes(entries, all, vars, typeCrossRefs, templater);
         doc.setContent(MdFactory.seq(all));
         return doc.build();
     }
 
-    private void _fillConfigVars(NObjectElement entries, List<MdElement> all, Vars vars2) {
+    private static class Templater {
+        private Map<String, String> vars0;
+        private NExprTemplate bashStyleTemplate;
+        private NExprMutableDeclarations declarations;
+
+        public Templater(Map<String, String> vars0) {
+            this.vars0 = vars0;
+            declarations = NExprs.of().newMutableDeclarations(new NExprEvaluator() {
+                @Override
+                public NOptional<NExprVar> getVar(String varName, NExprDeclarations context) {
+                    String u = vars0.get(varName);
+                    if (u != null) {
+                        return NOptional.of(context.ofVar(varName, u));
+                    }
+                    return NOptional.of(context.ofVar(varName, null));
+                }
+            });
+        }
+
+        public boolean evalBoolean(NElement enabled, boolean defaultValue) {
+            if (enabled != null) {
+                return NLiteral.of(prepareString(enabled.asString().get())).asBoolean().orElse(defaultValue);
+            }
+            return defaultValue;
+        }
+
+        public String prepareString(String text) {
+            if (bashStyleTemplate == null) {
+                bashStyleTemplate = declarations.ofTemplate().withBashStyle();
+            }
+            return bashStyleTemplate.processString(text);
+        }
+    }
+
+    private void _fillConfigVars(NObjectElement entries, List<MdElement> all, Vars vars2, Templater templater) {
         String target = "your-company";
         vars2.putDefault("config.target", target);
         List<ConfigVar> configVars = OpenApiParser.loadConfigVars(null, entries, vars2, session);
@@ -118,7 +152,7 @@ public class MainMarkdownGenerator {
         return new Vars(m);
     }
 
-    private void _fillIntroduction(NObjectElement entries, List<MdElement> all, Vars vars) {
+    private void _fillIntroduction(NObjectElement entries, List<MdElement> all, Vars vars, Templater templater) {
         all.add(MdFactory.endParagraph());
         all.add(MdFactory.title(2, msg.get("INTRODUCTION").get()));
         all.add(MdFactory.endParagraph());
@@ -175,20 +209,20 @@ public class MainMarkdownGenerator {
         all.add(MdFactory.endParagraph());
         for (NElement nElement : changeLog) {
             NObjectElement oo = nElement.asObject().get();
-            all.add(MdFactory.title(4, "VERSION " + oo.getString("version").get()+" : "+oo.getString("title").get()));
+            all.add(MdFactory.title(4, "VERSION " + oo.getString("version").get() + " : " + oo.getString("title").get()));
             all.add(MdFactory.endParagraph());
             all.add(NoApiUtils.asText(
                     oo.getString("observations").get()
             ));
             all.add(MdFactory.endParagraph());
             for (NElement item : oo.getArray("details").orElse(NArrayElement.ofEmpty())) {
-                all.add(MdFactory.ul(1,NoApiUtils.asText(item.asString().get())));
+                all.add(MdFactory.ul(1, NoApiUtils.asText(item.asString().get())));
             }
             all.add(MdFactory.endParagraph());
         }
     }
 
-    private void _fillHeaders(NObjectElement entries, List<MdElement> all, Vars vars2) {
+    private void _fillHeaders(NObjectElement entries, List<MdElement> all, Vars vars2, Templater templater) {
         NObjectElement components = entries.getObject("components").orElse(NObjectElement.ofEmpty());
         if (!components.getObject("headers").isEmpty()) {
             all.add(MdFactory.endParagraph());
@@ -221,7 +255,7 @@ public class MainMarkdownGenerator {
         }
     }
 
-    private void _fillSecuritySchemes(NObjectElement entries, List<MdElement> all, Vars vars2) {
+    private void _fillSecuritySchemes(NObjectElement entries, List<MdElement> all, Vars vars2, Templater templater) {
         NObjectElement components = entries.getObject("components").orElse(NObjectElement.ofEmpty());
         NObjectElement securitySchemes = components.getObject("securitySchemes").orElse(NObjectElement.ofEmpty());
         if (!securitySchemes.isEmpty()) {
@@ -322,7 +356,7 @@ public class MainMarkdownGenerator {
     }
 
 
-    private void _fillSchemaTypes(NObjectElement entries, List<MdElement> all, Vars vars2, List<TypeCrossRef> typeCrossRefs) {
+    private void _fillSchemaTypes(NObjectElement entries, List<MdElement> all, Vars vars2, List<TypeCrossRef> typeCrossRefs, Templater templater) {
         Map<String, TypeInfo> allTypes = openApiParser.parseTypes(entries, session);
         if (allTypes.isEmpty()) {
             return;
@@ -401,27 +435,31 @@ public class MainMarkdownGenerator {
     }
 
 
-    private void _fillApiPaths(NObjectElement entries, List<MdElement> all, Vars vars2, List<TypeCrossRef> typeCrossRefs) {
+    private void _fillApiPaths(NObjectElement entries, List<MdElement> all, Vars vars2, List<TypeCrossRef> typeCrossRefs, Templater templater) {
         Map<String, TypeInfo> allTypes = openApiParser.parseTypes(entries, session);
         NElements prv = NElements.of();
         all.add(MdFactory.endParagraph());
         all.add(MdFactory.title(2, msg.get("API_PATHS").get()));
-        int apiSize = entries.get(prv.ofString("paths")).flatMap(NElement::asObject).get().size();
+        List<NElementEntry> paths = entries.get(prv.ofString("paths")).flatMap(NElement::asObject).get().stream().collect(Collectors.toList())
+                .stream().filter(x -> templater.evalBoolean(x.getValue().asObject().get().get("enabled").orNull(),true)).collect(Collectors.toList());
+        ;
+        int apiSize = paths.size();
         all.add(NoApiUtils.asText(NMsg.ofV(msg.get("API_PATHS.body").get(), NMaps.of("apiSize", apiSize)).toString()));
         all.add(MdFactory.endParagraph());
-        for (NElementEntry path : entries.get(prv.ofString("paths")).flatMap(NElement::asObject).get()) {
+        for (NElementEntry path : paths) {
             String url = path.getKey().asString().get();
             all.add(MdFactory.ul(1, MdFactory.codeBacktick3("", url)));
         }
         all.add(MdFactory.endParagraph());
         all.add(NoApiUtils.asText(msg.get("API_PATHS.text").get()));
         NObjectElement schemas = entries.getObjectByPath("components", "schemas").orNull();
-        for (NElementEntry path : entries.get(prv.ofString("paths")).flatMap(NElement::asObject).get()) {
+        for (NElementEntry path : paths) {
             String url = path.getKey().asString().get();
             Map<String, NObjectElement> calls = new HashMap<>();
             String dsummary = null;
             String ddescription = null;
             NArrayElement dparameters = null;
+            boolean enabled = true;
             for (NElementEntry ss : path.getValue().asObject().get()) {
                 String k = ss.getKey().asString().get();
                 switch (k) {
@@ -437,18 +475,30 @@ public class MainMarkdownGenerator {
                         dparameters = ss.getValue().asArray().get();
                         break;
                     }
+                    case "enabled": {
+                        enabled = templater.evalBoolean(ss.getValue(), true);
+                        break;
+                    }
                     default: {
                         calls.put(k, ss.getValue().asObject().get());
                     }
                 }
             }
             for (Map.Entry<String, NObjectElement> ee : calls.entrySet()) {
-                _fillApiPathMethod(ee.getKey(), ee.getValue(), all, url, prv, dsummary, ddescription, dparameters, schemas, typeCrossRefs,allTypes);
+                _fillApiPathMethod(ee.getKey(), ee.getValue(), all, url, prv, dsummary, ddescription, dparameters, schemas, typeCrossRefs, allTypes);
             }
         }
     }
 
-    private void _fillServerList(NObjectElement entries, List<MdElement> all, Vars vars2) {
+    private boolean evaluatePathEnabled(NElement v, Templater templater) {
+        NElement enabled = v.asObject().get().get("enabled").orNull();
+        if (enabled != null) {
+            return NLiteral.of(templater.prepareString(enabled.asString().get())).asBoolean().orElse(true);
+        }
+        return true;
+    }
+
+    private void _fillServerList(NObjectElement entries, List<MdElement> all, Vars vars2, Templater templater) {
         all.add(MdFactory.endParagraph());
         all.add(MdFactory.title(3, "SERVER LIST"));
         all.add(NoApiUtils.asText(
@@ -541,7 +591,7 @@ public class MainMarkdownGenerator {
 
     private void _fillApiPathMethod(String method, NObjectElement call, List<MdElement> all, String url, NElements prv,
                                     String dsummary, String ddescription, NArrayElement dparameters,
-                                    NObjectElement schemas, List<TypeCrossRef> typeCrossRefs,Map<String, TypeInfo> allTypes) {
+                                    NObjectElement schemas, List<TypeCrossRef> typeCrossRefs, Map<String, TypeInfo> allTypes) {
 
         String nsummary = call.getString("summary").orElse(dsummary);
         String ndescription = call.getString("description").orElse(ddescription);
