@@ -689,11 +689,12 @@ public class MainMarkdownGenerator {
                         all.add(NoApiUtils.asText(NMsg.ofV(msg.get("requestType.info").get(), NMaps.of("type", o.getRef())).toString()));
                         NElement s = schemas.get(o.getRef()).orNull();
                         NElement description = null;
-                        NElement example = null;
-                        if (s != null) {
+                        NElement example = ii.getValue().asObject().get().get("example").orNull();
+                        if (example==null && s != null) {
                             description = s.asObject().get().get("description").orNull();
                             example = s.asObject().get().get("example").orNull();
                         }
+
                         MdTable tab = new MdTable(
                                 new MdColumn[]{
                                         new MdColumn(NoApiUtils.asText(msg.get("NAME").get()), MdHorizontalAlign.LEFT),
