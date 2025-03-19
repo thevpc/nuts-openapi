@@ -1,62 +1,57 @@
-package net.thevpc.nuts.toolbox.noapi.service;
+package net.thevpc.nuts.toolbox.noapi.store.swagger;
 
-import net.thevpc.nuts.*;
 import net.thevpc.nuts.elem.*;
-import net.thevpc.nuts.toolbox.noapi.model.ConfigVar;
-import net.thevpc.nuts.toolbox.noapi.model.FieldInfo;
-import net.thevpc.nuts.toolbox.noapi.model.TypeInfo;
-import net.thevpc.nuts.toolbox.noapi.model.Vars;
+import net.thevpc.nuts.toolbox.noapi.model.*;
+import net.thevpc.nuts.toolbox.noapi.store.NoApiStore;
 import net.thevpc.nuts.util.NBlankable;
-import net.thevpc.nuts.util.NOptional;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 public class OpenApiParser {
 
-    public static Vars _fillVars(NObjectElement apiElement, Map<String, String> vars) {
-        Map<String, String> m = new LinkedHashMap<>();
+    public static Vars _fillVars(NoApiStore apiElement, Map<String, String> vars) {
+        Map<String, String> all = new LinkedHashMap<>();
 
-        NOptional<NObjectElement> v = apiElement.getObjectByPath("custom", "variables");
-        if (v.isPresent()) {
-            for (NElementEntry entry : v.get().entries()) {
-                m.put(entry.getKey().toString(), entry.getValue().toString());
-            }
+        for (MVar c : apiElement.findVariables()) {
+            all.put(c.getId(), c.getValue());
         }
+
         if (vars != null) {
-            m.putAll(vars);
+            all.putAll(vars);
         }
-        return new Vars(m);
+        return new Vars(all);
     }
 
-    public static List<ConfigVar> loadConfigVars(NObjectElement configElements, NObjectElement apiElements, Vars vars2, NSession session) {
-        LinkedHashMap<String, ConfigVar> all = new LinkedHashMap<>();
-        for (NElementEntry srv : apiElements.getObjectByPath("custom", "config", "variables").orElse(NObjectElement.ofEmpty()).entries()) {
-            String id = srv.getKey().asString().get();
-            String name = vars2.format(srv.getValue().asObject().get().getString("name").get());
-            String example = vars2.format(srv.getValue().asObject().get().getString("example").get());
-            String description = vars2.format(srv.getValue().asObject().get().getString("description").get());
-
-            all.put(id, new ConfigVar(id, name, description, example, null, null));
+    public static List<MVar> loadConfigVars(MConf confFile, NoApiStore apiElements, Vars vars2) {
+        LinkedHashMap<String, MVar> all = new LinkedHashMap<>();
+        for (MVar c : apiElements.findConfigVariables()) {
+            all.put(c.getId(),
+                    new MVar(
+                            c.getId(),
+                            vars2.format(c.getValue()),
+                            vars2.format(c.getObservations()),
+                            c.getExamples().toArray(new MExample[0]),
+                            vars2.format(c.getValue()),
+                            vars2.format(c.getObservations())
+                    )
+            );
         }
-        if (configElements != null) {
-            for (NElementEntry srv : configElements.getObjectByPath("variables").orElse(NObjectElement.ofEmpty()).entries()) {
-                String id = srv.getKey().asString().get();
-                String value = vars2.format(srv.getValue().asObject().get().getString("value").get());
-                String observations = vars2.format(srv.getValue().asObject().get().getString("observations").get());
-                ConfigVar f = all.get(id);
+        if (confFile != null) {
+            for (MVar v : confFile.variables) {
+                MVar f = all.get(v.id);
                 if (f == null) {
-                    f = new ConfigVar(id, id, id, id, value, observations);
-                    all.put(id, f);
+                    all.put(v.id, f);
                 } else {
-                    f.setObservations(observations);
-                    f.setValue(value);
+                    f.setObservations(v.observations);
+                    f.setValue(v.value);
                 }
             }
         }
         return new ArrayList<>(all.values());
     }
 
-    public TypeInfo parseOneType(NObjectElement value, String name0, NSession session, Map<String, TypeInfo> allTypes) {
+    public TypeInfo parseOneType(NObjectElement value, String name0, Map<String, TypeInfo> allTypes) {
         NObjectElement v = value.asObject().get();
         TypeInfo tt = new TypeInfo();
         tt.setName(v.getString("name").orElse(name0));
@@ -78,7 +73,7 @@ public class OpenApiParser {
         tt.setSmartName(tt.getType());
         tt.setDescription(v.getString("description").orNull());
         tt.setSummary(v.getString("summary").orNull());
-        tt.setExample(value.get("example").orNull());
+        tt.getExamples().add(new MExample(null,value.get("example").orNull()));
         if (!NBlankable.isBlank(value.getString("$ref").orNull())) {
             tt.setRefLong(value.getString("$ref").orNull());
             tt.setRef(userNameFromRefValue(tt.getRefLong()));
@@ -98,31 +93,31 @@ public class OpenApiParser {
                 tt.setArrayComponentType(a);
                 TypeInfo refType = allTypes.get(a.getSmartName());
                 tt.setSmartName(a.getSmartName() + "[]");
-                Object e = a.getExample();
+                Object e = a.getExamples();
                 if (e == null && refType != null) {
-                    e = refType.getExample();
+                    e = refType.getExamples();
                 }
                 if (e != null) {
-                    if(e instanceof NElement){
-                        tt.setExample(NElements.of().ofArray().add((NElement) e).build());
-                    }else {
-                        tt.setExample(Arrays.asList(e));
+                    if (e instanceof NElement) {
+                        tt.getExamples().add(new MExample(null,NElements.of().ofArray((NElement) e).build()));
+                    } else {
+                        tt.getExamples().add(new MExample(null,Arrays.asList(e)));
                     }
                 }
             } else {
-                TypeInfo a = parseOneType(items, null, session, allTypes);
+                TypeInfo a = parseOneType(items, null, allTypes);
                 tt.setArrayComponentType(a);
                 tt.setSmartName(a.getSmartName() + "[]");
                 TypeInfo refType = allTypes.get(a.getSmartName());
-                Object e = a.getExample();
+                Object e = a.getExamples();
                 if (e == null && refType != null) {
-                    e = refType.getExample();
+                    e = refType.getExamples();
                 }
                 if (e != null) {
-                    if(e instanceof NElement){
-                        tt.setExample(NElements.of().ofArray().add((NElement) e).build());
-                    }else {
-                        tt.setExample(Arrays.asList(e));
+                    if (e instanceof NElement) {
+                        tt.getExamples().add(new MExample(null,NElements.of().ofArray().add((NElement) e).build()));
+                    } else {
+                        tt.getExamples().add(new MExample(null,Arrays.asList(e)));
                     }
                 }
             }
@@ -141,16 +136,18 @@ public class OpenApiParser {
             }
             NObjectElement a = v.getObject("properties").orNull();
             if (a != null) {
-                for (NElementEntry p : a) {
+                for (NPairElement p : a.pairs().collect(Collectors.toList())) {
                     FieldInfo ff = new FieldInfo();
-                    ff.name = p.getKey().asString().orElse("").trim();
-                    NObjectElement prop = p.getValue().asObject().get();
+                    ff.name = p.key().asString().orElse("").trim();
+                    NObjectElement prop = p.value().asObject().get();
                     ff.description = prop.getString("description").orNull();
                     ff.summary = prop.getString("summary").orNull();
                     NElement example = prop.get("example").orNull();
-                    ff.example = example==null?null:example.toString();
+                    if(example!=null) {
+                        ff.examples.add(new MExample(null,example));
+                    }
                     ff.required = requiredSet.contains(ff.name);
-                    ff.schema = parseOneType(prop, null, session, allTypes);
+                    ff.schema = parseOneType(prop, null, allTypes);
                     tt.getFields().add(ff);
                 }
                 return tt;
@@ -186,17 +183,17 @@ public class OpenApiParser {
         return tt;
     }
 
-    public Map<String, TypeInfo> parseTypes(NObjectElement root, NSession session) {
+    public Map<String, TypeInfo> parseTypes(NObjectElement root) {
 
         Map<String, TypeInfo> res = new LinkedHashMap<>();
         NObjectElement schemas = root.getObjectByPath("components", "schemas").orNull();
         if (schemas == null || schemas.isEmpty()) {
             return res;
         }
-        for (NElementEntry entry : schemas) {
-            String name0 = entry.getKey().asString().get();
-            NElement value = entry.getValue();
-            TypeInfo a = parseOneType(value.asObject().get(), name0, session, res);
+        for (NPairElement entry : schemas.pairs().collect(Collectors.toList())) {
+            String name0 = entry.key().asString().get();
+            NElement value = entry.value();
+            TypeInfo a = parseOneType(value.asObject().get(), name0, res);
             if (a != null) {
                 res.put(name0, a);
             }

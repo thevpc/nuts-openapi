@@ -1,15 +1,16 @@
 package net.thevpc.nuts.toolbox.noapi.service.docs;
 
 import net.thevpc.nuts.*;
-import net.thevpc.nuts.elem.NElements;
-import net.thevpc.nuts.elem.NObjectElement;
 import net.thevpc.nuts.io.NPath;
+import net.thevpc.nuts.toolbox.noapi.model.MConf;
+import net.thevpc.nuts.toolbox.noapi.model.MContact;
+import net.thevpc.nuts.toolbox.noapi.store.NoApiStore;
 import net.thevpc.nuts.util.NMaps;
 import net.thevpc.nuts.lib.md.*;
 import net.thevpc.nuts.toolbox.noapi.util.AppMessages;
 import net.thevpc.nuts.toolbox.noapi.util.NoApiUtils;
-import net.thevpc.nuts.toolbox.noapi.service.OpenApiParser;
-import net.thevpc.nuts.toolbox.noapi.model.ConfigVar;
+import net.thevpc.nuts.toolbox.noapi.store.swagger.OpenApiParser;
+import net.thevpc.nuts.toolbox.noapi.model.MVar;
 import net.thevpc.nuts.toolbox.noapi.model.Vars;
 import net.thevpc.nuts.util.NBlankable;
 import net.thevpc.nuts.util.NMsg;
@@ -32,25 +33,22 @@ public class ConfigMarkdownGenerator {
     }
 
     public MdDocument createMarkdown(
-            NObjectElement configElement,
-            NObjectElement apiElement,
+            MConf confFile,
+            NoApiStore store,
             NPath targetFolder,
             NPath sourceFolder, String apiDocumentFileName,
             Map<String, String> vars0, List<String> defaultAdocHeaders) {
-        NObjectElement openApiEntries = apiElement.asObject().get();
-        NElements prv = NElements.of();
-        NObjectElement infoObj = openApiEntries.getObject("info").orElse(prv.ofEmptyObject());
-        String apiDocumentTitle = infoObj.getString("title").orNull();
-        String apiDocumentVersion = infoObj.getString("version").orNull();
-        String configDocumentVersion = configElement.getString("version").orNull();
+        String apiDocumentTitle = store.getTitle().orNull();
+        String apiDocumentVersion = store.getVersion().orNull();
+        String configDocumentVersion = confFile.version;
         if (NBlankable.isBlank(configDocumentVersion)) {
             configDocumentVersion = apiDocumentVersion;
         }
         MdDocumentBuilder doc = new MdDocumentBuilder();
-        String targetName = configElement.getString("target-name").get();
-        String targetId = configElement.getString("target-id").get();
-        String apiDocumentIdFromConfig = configElement.getString("openapi-document-id").get();
-        String apiDocumentIdFromApi = apiElement.getStringByPath("custom", "openapi-document-id").get();
+        String targetName = confFile.targetName;
+        String targetId = confFile.targetId;
+        String apiDocumentIdFromConfig = confFile.documentId;
+        String apiDocumentIdFromApi = store.getId();
         if (!NBlankable.isBlank(apiDocumentIdFromConfig)) {
             if (!Objects.equals(apiDocumentIdFromConfig, apiDocumentIdFromApi)) {
                 throw new NIllegalArgumentException(NMsg.ofC("invalid api version %s <> %s", apiDocumentIdFromConfig, apiDocumentIdFromApi));
@@ -75,24 +73,23 @@ public class ConfigMarkdownGenerator {
 //        all.add(MdFactory.endParagraph());
 //        all.add(MdFactory.seq(NoApiUtils.asText("API Reference")));
 
-        Vars vars = OpenApiParser._fillVars(openApiEntries, vars0);
+        Vars vars = OpenApiParser._fillVars(store, vars0);
 
-        List<ConfigVar> configVars = OpenApiParser.loadConfigVars(configElement, apiElement, vars, session);
-        _fillIntroduction(configElement, openApiEntries, all, vars, apiDocumentFileName);
-        _fillConfigVars(configElement, all, vars, configVars);
+        List<MVar> configVars = OpenApiParser.loadConfigVars(confFile, store, vars);
+        _fillIntroduction(confFile, store, all, vars, apiDocumentFileName);
+        _fillConfigVars(confFile, all, vars, configVars);
         doc.setContent(MdFactory.seq(all));
         return doc.build();
     }
 
-    private void _fillIntroduction(NObjectElement configElement, NObjectElement apiElement,
+    private void _fillIntroduction(MConf confFile, NoApiStore store,
                                    List<MdElement> all, Vars vars, String apiDocumentFileName) {
         all.add(MdFactory.endParagraph());
         all.add(MdFactory.title(2, msg.get("INTRODUCTION").get()));
         all.add(MdFactory.endParagraph());
-        NObjectElement info = apiElement.getObject("info").orElse(NObjectElement.ofEmpty());
-        all.add(NoApiUtils.asText(apiElement.getStringByPath("custom", "config", "description").orElse("").trim()));
+        all.add(NoApiUtils.asText(store.getConfigDescription().orElse("").trim()));
         all.add(MdFactory.endParagraph());
-        String targetName = configElement.getString("target-name").get();
+        String targetName = confFile.targetName;
         all.add(NoApiUtils.asText(
                 NMsg.ofV(msg.get("section.config.introduction.body").get(), NMaps.of("name", targetName)
                 ).toString()));
@@ -103,7 +100,7 @@ public class ConfigMarkdownGenerator {
                 msg.get("section.contact.body").get()
         ));
         all.add(MdFactory.endParagraph());
-        NObjectElement contact = info.getObject("contact").orElse(NObjectElement.ofEmpty());
+        MContact contact = store.getContact().orElse(new MContact());
         all.add(MdFactory.table()
                 .addColumns(
                         MdFactory.column().setName(msg.get("NAME").get()),
@@ -112,9 +109,9 @@ public class ConfigMarkdownGenerator {
                 )
                 .addRows(
                         MdFactory.row().addCells(
-                                NoApiUtils.asText(contact.getString("name").orElse("")),
-                                NoApiUtils.asText(contact.getString("email").orElse("")),
-                                NoApiUtils.asText(contact.getString("url").orElse(""))
+                                NoApiUtils.asTextTrimmed(contact.name),
+                                NoApiUtils.asTextTrimmed(contact.email),
+                                NoApiUtils.asTextTrimmed(contact.url)
                         )
                 ).build()
         );
@@ -124,9 +121,8 @@ public class ConfigMarkdownGenerator {
                 msg.get("section.reference-document.body").get()
         ));
 
-        NObjectElement infoObj = apiElement.getObject("info").orElse(NObjectElement.ofEmpty());
-        String apiDocumentTitle = infoObj.getString("title").orNull();
-        String apiDocumentVersion = infoObj.getString("version").orNull();
+        String apiDocumentTitle = store.getTitle().orElse("");
+        String apiDocumentVersion = store.getVersion().orElse("");
 
         all.add(MdFactory.endParagraph());
         all.add(MdFactory.table()
@@ -146,9 +142,9 @@ public class ConfigMarkdownGenerator {
     }
 
 
-    private void _fillConfigVars(NObjectElement entries, List<MdElement> all, Vars vars, List<ConfigVar> configVars) {
-        String targetName = entries.getString("target-name").get();
-        String observations = entries.getString("observations").orElse("");
+    private void _fillConfigVars(MConf confFile, List<MdElement> all, Vars vars, List<MVar> configVars) {
+        String targetName = confFile.targetName;
+        String observations = confFile.observations;
         all.add(MdFactory.endParagraph());
         all.add(MdFactory.title(2, msg.get("CONFIGURATION").get()));
         all.add(NoApiUtils.asText(
@@ -157,7 +153,7 @@ public class ConfigMarkdownGenerator {
 
         if (!NBlankable.isBlank(observations)) {
             all.add(MdFactory.newLine());
-            all.add(NoApiUtils.asText(vars.format(observations)));
+            all.add(NoApiUtils.asTextTrimmed(vars.format(observations)));
         }
 
         all.add(MdFactory.endParagraph());
@@ -167,7 +163,7 @@ public class ConfigMarkdownGenerator {
                 ).toString()));
         all.add(MdFactory.endParagraph());
 
-        for (ConfigVar configVar : configVars) {
+        for (MVar configVar : configVars) {
             all.add(MdFactory.endParagraph());
             all.add(MdFactory.title(4, configVar.getName()));
             all.add(NoApiUtils.asText(configVar.getDescription()));

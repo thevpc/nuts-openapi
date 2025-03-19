@@ -6,6 +6,7 @@ import java.util.List;
 public class TypeInfo {
     private String name;
     private String smartName;
+    private String fullName;
     private String description;
     private String summary;
     private String type;
@@ -16,9 +17,18 @@ public class TypeInfo {
     private String ref;
     private String refLong;
     private List<String> enumValues;
-    private Object example;
+    public List<MExample> examples=new ArrayList<>();
     private List<FieldInfo> fields=new ArrayList<>();
     private TypeInfo arrayComponentType;
+
+    public String getFullName() {
+        return fullName;
+    }
+
+    public TypeInfo setFullName(String fullName) {
+        this.fullName = fullName;
+        return this;
+    }
 
     public String getName() {
         return name;
@@ -119,14 +129,10 @@ public class TypeInfo {
         return this;
     }
 
-    public Object getExample() {
-        return example;
+    public List<MExample> getExamples() {
+        return examples;
     }
 
-    public TypeInfo setExample(Object example) {
-        this.example = example;
-        return this;
-    }
 
     public List<FieldInfo> getFields() {
         return fields;
@@ -153,5 +159,9 @@ public class TypeInfo {
     public TypeInfo setArrayComponentType(TypeInfo arrayComponentType) {
         this.arrayComponentType = arrayComponentType;
         return this;
+    }
+
+    public TypeInfo copy() {
+        return null;
     }
 }

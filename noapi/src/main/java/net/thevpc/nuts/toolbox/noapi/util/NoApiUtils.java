@@ -18,6 +18,7 @@ import net.thevpc.nuts.toolbox.noapi.model.FieldInfo;
 import net.thevpc.nuts.toolbox.noapi.model.SupportedTargetType;
 import net.thevpc.nuts.toolbox.noapi.model.TypeInfo;
 import net.thevpc.nuts.util.NStringUtils;
+import net.thevpc.tson.TsonElement;
 import org.asciidoctor.Asciidoctor;
 import org.asciidoctor.OptionsBuilder;
 import org.asciidoctor.SafeMode;
@@ -32,7 +33,10 @@ import java.util.stream.Collectors;
 public class NoApiUtils {
 
     public static boolean isProjectMainFileName(String text) {
-        if (text.endsWith(".json") && !text.endsWith(".config.json")) {
+        if (
+                (text.endsWith(".json") && !text.endsWith(".config.json"))
+                || (text.endsWith(".tson") && !text.endsWith(".config.tson"))
+        ) {
             return true;
         }
         return false;
@@ -42,7 +46,14 @@ public class NoApiUtils {
         if (text.endsWith(".config.json")) {
             return true;
         }
+        if (text.endsWith(".config.tson")) {
+            return true;
+        }
         return false;
+    }
+
+    public static MdElement asTextTrimmed(String text) {
+        return asText(NStringUtils.trim(text));
     }
 
     public static MdElement asText(String text) {
@@ -133,14 +144,24 @@ public class NoApiUtils {
     }
 
     public static String jsonTextString(Object example) {
+        if (example instanceof TsonElement) {
+            TsonElement t=(TsonElement) example;
+            if(t.isString()) {
+                return t.toStr().value();
+            }
+            if(t.isName()) {
+                return t.toStr().value();
+            }
+            return t.toString();
+        }
         if (example instanceof NPrimitiveElement) {
             return ((NPrimitiveElement) example).toStringLiteral();
         }
-        if (example instanceof NElementEntry) {
+        if (example instanceof NPairElement) {
             return
-                    jsonTextString(((NElementEntry) example).getKey())
+                    jsonTextString(((NPairElement) example).key())
                             + " : "
-                            + jsonTextString(((NElementEntry) example).getValue());
+                            + jsonTextString(((NPairElement) example).value());
         }
         if (example instanceof NArrayElement) {
             StringBuilder sb = new StringBuilder();
@@ -155,7 +176,7 @@ public class NoApiUtils {
         if (example instanceof NObjectElement) {
             StringBuilder sb = new StringBuilder();
             sb.append("{");
-            Collection<NElementEntry> entries = ((NObjectElement) example).entries();
+            Collection<NPairElement> entries = ((NObjectElement) example).pairs().collect(Collectors.toList());
             sb.append(
                     entries.stream().map(NoApiUtils::jsonTextString).collect(Collectors.joining(", "))
             );

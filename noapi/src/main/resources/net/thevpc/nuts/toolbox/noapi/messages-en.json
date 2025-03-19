@@ -51,6 +51,7 @@
   "endpoint.info.5": "This end-point requires some input in its body to be provided by the caller.",
   "requestType.info": "The request body is expected to be of type : ##${type}## which is detailed in 'SCHEMA TYPES' section",
   "request.body.example.intro": "The following is a request body example",
+  "request.body.example.intro.multi": "The following are some request body examples",
   "response.body.example.intro": "The following is a response body example",
   "section.config.introduction.body": "This document details custom configuration relative to ##${name}##.",
   "section.config.body": "This section details ##${name}## configuration",

@@ -64,7 +64,7 @@
         <dependency><groupId>net.thevpc.nuts</groupId><artifactId>nuts-lib</artifactId><version>0.8.5.0</version></dependency>
         <dependency>
             <groupId>net.thevpc.nuts.lib</groupId>
-            <artifactId>nlib-md</artifactId>
+            <artifactId>nmarkdown</artifactId>
             <version>0.8.5.0</version>
         </dependency>
         <dependency>
@@ -88,6 +88,7 @@
             <artifactId>snakeyaml</artifactId>
             <version>1.30</version>
         </dependency>
+        <dependency><groupId>net.thevpc.nuts</groupId><artifactId>nuts-runtime</artifactId><version>0.8.5.0</version></dependency>
 
     </dependencies>
     <distributionManagement>
