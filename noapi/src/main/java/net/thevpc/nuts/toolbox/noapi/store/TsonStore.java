@@ -373,9 +373,9 @@ public class TsonStore implements NoApiStore {
                                             } else if (annotation.name().equals("deprecated")) {
                                                 f.deprecated = true;
                                             } else if (annotation.name().equals("summary")) {
-                                                f.summary = annotation.arg(0).toStr().value();
+                                                f.summary = annotation.param(0).toStr().value();
                                             } else if (annotation.name().equals("description")) {
-                                                f.description = annotation.arg(0).toStr().value();
+                                                f.description = annotation.param(0).toStr().value();
                                             }
                                         }
                                         TsonElement bodyElement = null;
