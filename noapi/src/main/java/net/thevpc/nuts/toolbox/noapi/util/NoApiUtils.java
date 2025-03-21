@@ -35,7 +35,7 @@ public class NoApiUtils {
     public static boolean isProjectMainFileName(String text) {
         if (
                 (text.endsWith(".json") && !text.endsWith(".config.json"))
-                || (text.endsWith(".tson") && !text.endsWith(".config.tson"))
+                        || (text.endsWith(".tson") && !text.endsWith(".config.tson"))
         ) {
             return true;
         }
@@ -132,6 +132,9 @@ public class NoApiUtils {
             return MdFactory.text("");
         }
         String e = jsonTextString(example);
+        if (NBlankable.isBlank(e)) {
+            return MdFactory.text("");
+        }
         return MdFactory.codeBacktick3("json", e);
     }
 
@@ -145,44 +148,19 @@ public class NoApiUtils {
 
     public static String jsonTextString(Object example) {
         if (example instanceof TsonElement) {
-            TsonElement t=(TsonElement) example;
-            if(t.isString()) {
+            TsonElement t = (TsonElement) example;
+            if (t.isString()) {
                 return t.toStr().value();
             }
-            if(t.isName()) {
+            if (t.isName()) {
                 return t.toStr().value();
             }
-            return t.toString();
+            return t.toString(false);
         }
-        if (example instanceof NPrimitiveElement) {
-            return ((NPrimitiveElement) example).toStringLiteral();
+        if (example instanceof NElement) {
+            return ((NElement) example).toString(false);
         }
-        if (example instanceof NPairElement) {
-            return
-                    jsonTextString(((NPairElement) example).key())
-                            + " : "
-                            + jsonTextString(((NPairElement) example).value());
-        }
-        if (example instanceof NArrayElement) {
-            StringBuilder sb = new StringBuilder();
-            sb.append("[");
-            Collection<NElement> entries = ((NArrayElement) example).items();
-            sb.append(
-                    entries.stream().map(NoApiUtils::jsonTextString).collect(Collectors.joining(", "))
-            );
-            sb.append("]");
-            return sb.toString();
-        }
-        if (example instanceof NObjectElement) {
-            StringBuilder sb = new StringBuilder();
-            sb.append("{");
-            Collection<NPairElement> entries = ((NObjectElement) example).pairs().collect(Collectors.toList());
-            sb.append(
-                    entries.stream().map(NoApiUtils::jsonTextString).collect(Collectors.joining(", "))
-            );
-            sb.append("}");
-            return sb.toString();
-        }
+
         return example.toString();
     }
 

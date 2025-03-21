@@ -366,7 +366,7 @@ public class TsonStore implements NoApiStore {
                                     case PAIR: {
                                         FieldInfo f = new FieldInfo();
                                         TsonPair p2 = param.toPair();
-                                        TsonAnnotation[] annotations = p2.key().annotations();
+                                        List<TsonAnnotation> annotations = p2.key().annotations();
                                         for (TsonAnnotation annotation : annotations) {
                                             if (annotation.name().equals("required")) {
                                                 f.required = true;

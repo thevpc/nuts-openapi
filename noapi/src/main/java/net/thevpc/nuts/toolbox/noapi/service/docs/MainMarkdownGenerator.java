@@ -426,12 +426,12 @@ public class MainMarkdownGenerator {
                 }
                 all.add(mdTableBuilder.build());
             }
-            if (!NBlankable.isBlank(v.getExamples())) {
-                all.add(MdFactory.endParagraph());
-                all.add(NoApiUtils.asText(msg.get("EXAMPLE").get()));
-                all.add(NoApiUtils.asText(":"));
-                all.add(MdFactory.endParagraph());
-                for (MExample example : v.getExamples()) {
+            for (MExample example : v.getExamples()) {
+                if (!NBlankable.isBlank(example.value)) {
+                    all.add(MdFactory.endParagraph());
+                    all.add(NoApiUtils.asText(msg.get("EXAMPLE").get()));
+                    all.add(NoApiUtils.asText(":"));
+                    all.add(MdFactory.endParagraph());
                     all.add(NoApiUtils.jsonTextElement(example.value));
                 }
             }
@@ -700,80 +700,82 @@ public class MainMarkdownGenerator {
                 all.add(MdFactory.text("."));
             }
             for (MCall.Content content : response.contents) {
-                if (content.type.getUserType().equals("$ref")) {
-                    if (NBlankable.isBlank(content.type.getExamples())) {
-                        all.add(MdFactory.table()
-                                .addColumns(
-                                        MdFactory.column().setName(msg.get("RESPONSE_MODEL").get()),
-                                        MdFactory.column().setName(msg.get("RESPONSE_TYPE").get())
-                                )
-                                .addRows(
-                                        MdFactory.row().addCells(
-                                                NoApiUtils.asText(content.contentType),
-                                                NoApiUtils.asText(content.type.getRef())
-                                        )
-                                ).build()
-                        );
-                    } else if (content.type.getExamples().toString().trim().length() <= maxExampleInlineLength) {
-                        all.add(MdFactory.table()
-                                .addColumns(
-                                        MdFactory.column().setName(msg.get("RESPONSE_MODEL").get()),
-                                        MdFactory.column().setName(msg.get("RESPONSE_TYPE").get())
-                                )
-                                .addRows(
-                                        MdFactory.row().addCells(
-                                                NoApiUtils.asText(content.contentType),
-                                                NoApiUtils.asText(content.type.getRef())
-                                        )
-                                ).build()
-                        );
-                        if (!NBlankable.isBlank(content.type.getExamples())) {
-                            all.add(MdFactory.text(msg.get("response.body.example.intro").get()));
-                            all.add(MdFactory.text(":\n"));
-                            all.add(NoApiUtils.jsonTextElement(content.type.getExamples()));
+                List<MExample> examples = content.type.getExamples();
+                for (MExample example : examples) {
+                    if (content.type.getUserType().equals("$ref")) {
+                        if (NBlankable.isBlank(example.value)) {
+                            all.add(MdFactory.table()
+                                    .addColumns(
+                                            MdFactory.column().setName(msg.get("RESPONSE_MODEL").get()),
+                                            MdFactory.column().setName(msg.get("RESPONSE_TYPE").get())
+                                    )
+                                    .addRows(
+                                            MdFactory.row().addCells(
+                                                    NoApiUtils.asText(content.contentType),
+                                                    NoApiUtils.asText(content.type.getRef())
+                                            )
+                                    ).build()
+                            );
+                        } else if (example.value.toString().trim().length() <= maxExampleInlineLength) {
+                            all.add(MdFactory.table()
+                                    .addColumns(
+                                            MdFactory.column().setName(msg.get("RESPONSE_MODEL").get()),
+                                            MdFactory.column().setName(msg.get("RESPONSE_TYPE").get())
+                                    )
+                                    .addRows(
+                                            MdFactory.row().addCells(
+                                                    NoApiUtils.asText(content.contentType),
+                                                    NoApiUtils.asText(content.type.getRef())
+                                            )
+                                    ).build()
+                            );
+                            if (!NBlankable.isBlank(example.value)) {
+                                all.add(MdFactory.text(msg.get("response.body.example.intro").get()));
+                                all.add(MdFactory.text(":\n"));
+                                all.add(NoApiUtils.jsonTextElement(example.value));
+                            }
+                        } else {
+                            all.add(MdFactory.table()
+                                            .addColumns(
+                                                    MdFactory.column().setName(msg.get("RESPONSE_MODEL").get()),
+                                                    MdFactory.column().setName(msg.get("RESPONSE_TYPE").get())//,
+//                                                MdFactory.column().setName(msg.get("EXAMPLE").get())
+                                            )
+                                            .addRows(
+                                                    MdFactory.row().addCells(
+                                                            NoApiUtils.asText(content.contentType),
+                                                            NoApiUtils.asText(content.type.getRef())//,
+//                                                        MdFactory.seq(NoApiUtils.asText(msg.get("SEE_BELOW").get()), asText("..."))
+                                                    )
+                                            ).build()
+                            );
+                            if (!NBlankable.isBlank(example.value)) {
+                                all.add(MdFactory.text(msg.get("response.body.example.intro").get()));
+                                all.add(MdFactory.text(":\n"));
+                                all.add(NoApiUtils.jsonTextElement(example.value));
+                            }
                         }
                     } else {
+                        all.add(MdFactory.endParagraph());
+
                         all.add(MdFactory.table()
-                                        .addColumns(
-                                                MdFactory.column().setName(msg.get("RESPONSE_MODEL").get()),
-                                                MdFactory.column().setName(msg.get("RESPONSE_TYPE").get())//,
-//                                                MdFactory.column().setName(msg.get("EXAMPLE").get())
+                                .addColumns(
+                                        MdFactory.column().setName(msg.get("RESPONSE_MODEL").get()),
+                                        MdFactory.column().setName(msg.get("RESPONSE_TYPE").get())
+                                )
+                                .addRows(
+                                        MdFactory.row().addCells(
+                                                NoApiUtils.asText(content.contentType),
+                                                NoApiUtils.codeElement(content.type, true, "", msg)
+                                                //NoApiUtils.asText(o.getRef())
                                         )
-                                        .addRows(
-                                                MdFactory.row().addCells(
-                                                        NoApiUtils.asText(content.contentType),
-                                                        NoApiUtils.asText(content.type.getRef())//,
-//                                                        MdFactory.seq(NoApiUtils.asText(msg.get("SEE_BELOW").get()), asText("..."))
-                                                )
-                                        ).build()
+                                ).build()
                         );
-                        if (!NBlankable.isBlank(content.type.getExamples())) {
+                        if (!NBlankable.isBlank(example.value)) {
                             all.add(MdFactory.text(msg.get("response.body.example.intro").get()));
                             all.add(MdFactory.text(":\n"));
-                            all.add(NoApiUtils.jsonTextElement(content.type.getExamples()));
+                            all.add(NoApiUtils.jsonTextElement(example.value));
                         }
-                    }
-                } else {
-                    all.add(MdFactory.endParagraph());
-
-                    all.add(MdFactory.table()
-                            .addColumns(
-                                    MdFactory.column().setName(msg.get("RESPONSE_MODEL").get()),
-                                    MdFactory.column().setName(msg.get("RESPONSE_TYPE").get())
-                            )
-                            .addRows(
-                                    MdFactory.row().addCells(
-                                            NoApiUtils.asText(content.contentType),
-                                            NoApiUtils.codeElement(content.type, true, "", msg)
-                                            //NoApiUtils.asText(o.getRef())
-                                    )
-                            ).build()
-                    );
-                    if (!NBlankable.isBlank(content.type.getExamples())) {
-                        all.add(MdFactory.text(msg.get("response.body.example.intro").get()));
-                        all.add(MdFactory.text(":\n"));
-                        all.add(NoApiUtils.jsonTextElement(content.type.getExamples()));
-                    }
 //                            all.add(MdFactory.title(6, msg.get("RESPONSE_MODEL").get() + " - " + content.getKey()));
 ////                        all.add(MdFactory.endParagraph());
 //                            if (o.getRef() != null) {
@@ -782,7 +784,9 @@ public class MainMarkdownGenerator {
 //                                all.add(MdFactory.text("\n"));
 //                                all.add(NoApiUtils.codeElement(o, true, "", msg));
 //                            }
+                    }
                 }
+
             }
         }
 
