@@ -60,8 +60,8 @@ public class SwaggerStore implements NoApiStore {
         c.documentId = obj.getString("openapi-document-id").get();
         c.version = obj.getString("observations").orElse("");
         c.variables = new ArrayList<>();
-        for (NPairElement srv : obj.getObjectByPath("variables").orElse(NObjectElement.ofEmpty()).pairs().collect(Collectors.toList())) {
-            String id = srv.key().asString().get();
+        for (NPairElement srv : obj.getObjectByPath("variables").orElse(NObjectElement.ofEmpty()).pairs()) {
+            String id = srv.key().asStringValue().get();
             String value = srv.value().asObject().get().getString("value").get();
             String observations = srv.value().asObject().get().getString("observations").get();
             c.variables.add(new MVar(id, id, id, new MExample[0], value, observations));
@@ -128,11 +128,11 @@ public class SwaggerStore implements NoApiStore {
     public List<DocItemInfo> getMultiDocuments() {
         NObjectElement multiDocument = apiElement.asObject().get().getObjectByPath("custom", "multi-document").orElse(NElements.of().ofEmptyObject());
         List<DocItemInfo> docInfos = new ArrayList<>();
-        for (NPairElement entry : multiDocument.pairs().collect(Collectors.toList())) {
+        for (NPairElement entry : multiDocument.pairs()) {
             DocItemInfo d = new DocItemInfo();
-            d.id = entry.key().asString().get();
+            d.id = entry.key().asStringValue().get();
             d.raw = entry.value().asObject().orElse(NElements.of().ofEmptyObject());
-            for (NPairElement nPairElement : d.raw.get("variables").orElse(NElements.of().ofEmptyObject()).asObject().get().pairs().collect(Collectors.toList())) {
+            for (NPairElement nPairElement : d.raw.get("variables").orElse(NElements.of().ofEmptyObject()).asObject().get().pairs()) {
                 d.vars.put(String.valueOf(nPairElement.key()), String.valueOf(nPairElement.value()));
             }
             docInfos.add(d);
@@ -148,8 +148,8 @@ public class SwaggerStore implements NoApiStore {
     @Override
     public List<MVar> findConfigVariables() {
         List<MVar> all = new ArrayList<>();
-        for (NPairElement srv : apiElement.asObject().get().getObjectByPath("custom", "config", "variables").orElse(NObjectElement.ofEmpty()).pairs().collect(Collectors.toList())) {
-            String id = srv.key().asString().get();
+        for (NPairElement srv : apiElement.asObject().get().getObjectByPath("custom", "config", "variables").orElse(NObjectElement.ofEmpty()).pairs()) {
+            String id = srv.key().asStringValue().get();
             String name = (srv.value().asObject().get().getString("name").get());
             Object example = (srv.value().asObject().get().get("example").orNull());
             String description = (srv.value().asObject().get().getString("description").get());
@@ -162,9 +162,9 @@ public class SwaggerStore implements NoApiStore {
     @Override
     public List<MVar> findVariables() {
         List<MVar> all = new ArrayList<>();
-        for (NPairElement srv : apiElement.asObject().get().getObjectByPath("custom", "variables").orElse(NObjectElement.ofEmpty()).pairs().collect(Collectors.toList())) {
-            String name = srv.key().asString().get();
-            String value = (srv.value().asString().get());
+        for (NPairElement srv : apiElement.asObject().get().getObjectByPath("custom", "variables").orElse(NObjectElement.ofEmpty()).pairs()) {
+            String name = srv.key().asStringValue().get();
+            String value = (srv.value().asStringValue().get());
             all.add(new MVar(name, name, name, new MExample[0], value, null));
         }
         return all;
@@ -182,7 +182,7 @@ public class SwaggerStore implements NoApiStore {
                     o.getString("observations").orElse("")
             );
             for (NElement item : o.getArray("details").orElse(NArrayElement.ofEmpty())) {
-                m.details.add(item.asString().get());
+                m.details.add(item.asStringValue().get());
             }
             return m;
         }).collect(Collectors.toList());
@@ -308,8 +308,8 @@ public class SwaggerStore implements NoApiStore {
                 for (NElement item : vars.asObject().get()) {
                     NPairElement v = item.asPair().get();
                     MVar cv = new MVar();
-                    cv.id = v.key().asString().get();
-                    cv.name = v.key().asString().get();
+                    cv.id = v.key().asStringValue().get();
+                    cv.name = v.key().asStringValue().get();
                     cv.value = v.value().asObject().get().getString("default").orElse("");
                     cv.description = v.value().asObject().get().getString("description").orNull();
                     r.variables.add(cv);
@@ -332,21 +332,21 @@ public class SwaggerStore implements NoApiStore {
         return paths.stream().map(x -> {
             NPairElement pair = (NPairElement) x.asPair().get();
             MPath p = new MPath();
-            p.url = pair.key().asString().get();
+            p.url = pair.key().asStringValue().get();
             NArrayElement dparameters = null;
             for (NElement sub : pair.value().asObject().get()) {
                 NPairElement v = sub.asPair().get();
-                switch (v.key().asString().get()) {
+                switch (v.key().asStringValue().get()) {
                     case "enabled": {
-                        p.enabled = v.value().asString().orElse(null);
+                        p.enabled = v.value().asStringValue().orElse(null);
                         break;
                     }
                     case "summary": {
-                        p.summary = v.value().asString().orElse(null);
+                        p.summary = v.value().asStringValue().orElse(null);
                         break;
                     }
                     case "description": {
-                        p.description = v.value().asString().orElse(null);
+                        p.description = v.value().asStringValue().orElse(null);
                         break;
                     }
                     case "parameters": {
@@ -358,7 +358,7 @@ public class SwaggerStore implements NoApiStore {
             p.calls = new ArrayList<>();
             for (NElement sub : pair.value().asObject().get()) {
                 NPairElement v = sub.asPair().get();
-                switch (v.key().asString().get()) {
+                switch (v.key().asStringValue().get()) {
                     case "enabled":
                     case "summary":
                     case "description": {
@@ -367,7 +367,7 @@ public class SwaggerStore implements NoApiStore {
                     default: {
                         MCall call = _fillApiPathMethod(
                                 v.value().asObject().orElse(NElements.of().ofEmptyObject()),
-                                v.key().asString().get(),
+                                v.key().asStringValue().get(),
                                 p.url,
                                 dparameters
                         );
@@ -403,7 +403,7 @@ public class SwaggerStore implements NoApiStore {
             for (NElement item : r) {
                 NPairElement ii = item.asPair().get();
                 MCall.Content vv = new MCall.Content();
-                vv.contentType = ii.key().asString().get();
+                vv.contentType = ii.key().asStringValue().get();
                 NObjectElement iiv = ii.value().asObject().get();
                 TypeInfo o = new OpenApiParser().parseOneType(iiv, null, allTypes);
                 String description = iiv.getString("description").orNull();
@@ -446,12 +446,12 @@ public class SwaggerStore implements NoApiStore {
                                     o.getRef(),
                                     url, "Response (" + s + ")"
                             ));
-                            respContent.contentType = content.key().asString().get();
+                            respContent.contentType = content.key().asStringValue().get();
                             respContent.type = o;
                             respContent.typeName = o.getRef();
                             respContent.examples.addAll(o.getExamples());
                         } else {
-                            respContent.contentType = content.key().asString().get();
+                            respContent.contentType = content.key().asStringValue().get();
                             respContent.type = o;
                             respContent.typeName = o.getRef();
                             respContent.examples.addAll(o.getExamples());

@@ -92,7 +92,7 @@ public class MainMarkdownGenerator {
 
         public boolean evalBoolean(String enabled, boolean defaultValue) {
             if (enabled != null) {
-                return NLiteral.of(prepareString(enabled)).asBoolean().orElse(defaultValue);
+                return NLiteral.of(prepareString(enabled)).asBooleanValue().orElse(defaultValue);
             }
             return defaultValue;
         }

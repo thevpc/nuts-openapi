@@ -15,11 +15,11 @@ public class AppMessages {
     private Map<String, String> values = new HashMap<>();
     private AppMessages parent;
 
-    public AppMessages(AppMessages parent, URL is) {
+    public AppMessages(AppMessages parent, URL url) {
         this.parent = parent;
-        NElement e = NElements.of().json().parse(is);
-        for (NPairElement entry : e.asObject().get().pairs().collect(Collectors.toList())) {
-            values.put(entry.key().asString().get(), entry.value().asString().get());
+        NElement e = NElements.of().json().parse(url);
+        for (NPairElement entry : e.asObject().get().pairs()) {
+            values.put(entry.key().asStringValue().get(), entry.value().asStringValue().get());
         }
     }
 

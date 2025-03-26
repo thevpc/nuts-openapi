@@ -34,7 +34,7 @@ public class NoapiMain implements NApplication {
         NApp.of().processCmdLine(new NCmdLineRunner() {
             @Override
             public boolean nextOption(NArg option, NCmdLine cmdLine, NCmdLineContext context) {
-                switch (option.asString().get()) {
+                switch (option.asStringValue().get()) {
                     case "--yaml": {
                         cmdLine.nextFlag();
                         ref.setOpenAPIFormat("yaml");

@@ -127,7 +127,7 @@ public class OpenApiParser {
             NArrayElement requiredElem = v.getArray("required").orNull();
             if (requiredElem != null) {
                 for (NElement e : requiredElem) {
-                    String a = e.asString().orElse("");
+                    String a = e.asStringValue().orElse("");
                     if (!NBlankable.isBlank(a)) {
                         a = a.trim();
                         requiredSet.add(a);
@@ -136,9 +136,9 @@ public class OpenApiParser {
             }
             NObjectElement a = v.getObject("properties").orNull();
             if (a != null) {
-                for (NPairElement p : a.pairs().collect(Collectors.toList())) {
+                for (NPairElement p : a.pairs()) {
                     FieldInfo ff = new FieldInfo();
-                    ff.name = p.key().asString().orElse("").trim();
+                    ff.name = p.key().asStringValue().orElse("").trim();
                     NObjectElement prop = p.value().asObject().get();
                     ff.description = prop.getString("description").orNull();
                     ff.summary = prop.getString("summary").orNull();
@@ -176,7 +176,7 @@ public class OpenApiParser {
                     tt.setUserType("enum");
                 }
                 for (NElement ee : senum) {
-                    tt.getEnumValues().add(ee.asString().get());
+                    tt.getEnumValues().add(ee.asStringValue().get());
                 }
             }
         }
@@ -190,8 +190,8 @@ public class OpenApiParser {
         if (schemas == null || schemas.isEmpty()) {
             return res;
         }
-        for (NPairElement entry : schemas.pairs().collect(Collectors.toList())) {
-            String name0 = entry.key().asString().get();
+        for (NPairElement entry : schemas.pairs()) {
+            String name0 = entry.key().asStringValue().get();
             NElement value = entry.value();
             TypeInfo a = parseOneType(value.asObject().get(), name0, res);
             if (a != null) {
