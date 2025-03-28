@@ -22,7 +22,6 @@ import net.thevpc.tson.TsonElement;
 import org.asciidoctor.Asciidoctor;
 import org.asciidoctor.OptionsBuilder;
 import org.asciidoctor.SafeMode;
-import org.yaml.snakeyaml.Yaml;
 
 import java.io.*;
 import java.util.ArrayList;
@@ -105,12 +104,7 @@ public class NoApiUtils {
             return NElements.of().json().parse(source, NElement.class);
         } else {
 //            return NElements.of().json().parse(inputStream, NutsElement.class);
-            try (InputStream is = source.getInputStream()) {
-                final Object o = new Yaml().load(is);
-                return NElements.of().toElement(o);
-            } catch (IOException ex) {
-                throw new UncheckedIOException(ex);
-            }
+            return NElements.of().yaml().parse(source);
         }
     }
 
@@ -158,6 +152,7 @@ public class NoApiUtils {
             return t.toString(false);
         }
         if (example instanceof NElement) {
+            String ss=((NElement) example).toString(false);
             return ((NElement) example).toString(false);
         }
 

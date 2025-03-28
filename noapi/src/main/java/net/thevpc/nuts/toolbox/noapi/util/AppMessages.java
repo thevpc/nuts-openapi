@@ -9,7 +9,6 @@ import net.thevpc.nuts.elem.NElements;
 import java.net.URL;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 public class AppMessages {
     private Map<String, String> values = new HashMap<>();
@@ -19,7 +18,7 @@ public class AppMessages {
         this.parent = parent;
         NElement e = NElements.of().json().parse(url);
         for (NPairElement entry : e.asObject().get().pairs()) {
-            values.put(entry.key().asStringValue().get(), entry.value().asStringValue().get());
+            values.put(entry.key().asString().get(), entry.value().asString().get());
         }
     }
 

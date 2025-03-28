@@ -6,7 +6,6 @@ import net.thevpc.nuts.toolbox.noapi.store.NoApiStore;
 import net.thevpc.nuts.util.NBlankable;
 
 import java.util.*;
-import java.util.stream.Collectors;
 
 public class OpenApiParser {
 
@@ -127,7 +126,7 @@ public class OpenApiParser {
             NArrayElement requiredElem = v.getArray("required").orNull();
             if (requiredElem != null) {
                 for (NElement e : requiredElem) {
-                    String a = e.asStringValue().orElse("");
+                    String a = e.asString().orElse("");
                     if (!NBlankable.isBlank(a)) {
                         a = a.trim();
                         requiredSet.add(a);
@@ -138,7 +137,7 @@ public class OpenApiParser {
             if (a != null) {
                 for (NPairElement p : a.pairs()) {
                     FieldInfo ff = new FieldInfo();
-                    ff.name = p.key().asStringValue().orElse("").trim();
+                    ff.name = p.key().asString().orElse("").trim();
                     NObjectElement prop = p.value().asObject().get();
                     ff.description = prop.getString("description").orNull();
                     ff.summary = prop.getString("summary").orNull();
@@ -176,7 +175,7 @@ public class OpenApiParser {
                     tt.setUserType("enum");
                 }
                 for (NElement ee : senum) {
-                    tt.getEnumValues().add(ee.asStringValue().get());
+                    tt.getEnumValues().add(ee.asString().get());
                 }
             }
         }
@@ -191,7 +190,7 @@ public class OpenApiParser {
             return res;
         }
         for (NPairElement entry : schemas.pairs()) {
-            String name0 = entry.key().asStringValue().get();
+            String name0 = entry.key().asString().get();
             NElement value = entry.value();
             TypeInfo a = parseOneType(value.asObject().get(), name0, res);
             if (a != null) {
