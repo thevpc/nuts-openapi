@@ -98,7 +98,7 @@ public class OpenApiParser {
                 }
                 if (e != null) {
                     if (e instanceof NElement) {
-                        tt.getExamples().add(new MExample(null,NElements.of().ofArray((NElement) e).build()));
+                        tt.getExamples().add(new MExample(null,NElements.of().ofArray((NElement) e)));
                     } else {
                         tt.getExamples().add(new MExample(null,Arrays.asList(e)));
                     }
@@ -114,7 +114,7 @@ public class OpenApiParser {
                 }
                 if (e != null) {
                     if (e instanceof NElement) {
-                        tt.getExamples().add(new MExample(null,NElements.of().ofArray().add((NElement) e).build()));
+                        tt.getExamples().add(new MExample(null,NElements.of().ofArrayBuilder().add((NElement) e).build()));
                     } else {
                         tt.getExamples().add(new MExample(null,Arrays.asList(e)));
                     }
