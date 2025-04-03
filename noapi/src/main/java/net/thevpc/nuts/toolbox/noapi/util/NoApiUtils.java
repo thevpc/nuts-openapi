@@ -152,10 +152,9 @@ public class NoApiUtils {
             return t.toString(false);
         }
         if (example instanceof NElement) {
-            String ss=((NElement) example).toString(false);
-            return ((NElement) example).toString(false);
+            String ss = NElements.of().json().normalize(((NElement) example)).toString(false);
+            return ss;
         }
-
         return example.toString();
     }
 

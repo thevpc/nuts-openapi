@@ -261,7 +261,14 @@ public class TsonStore implements NoApiStore {
                         all.add(h);
                         for (TsonElement oo : u.params()) {
                             switch (oo.type()) {
-                                case STRING: {
+                                case DOUBLE_QUOTED_STRING:
+                                case SINGLE_QUOTED_STRING:
+                                case ANTI_QUOTED_STRING:
+                                case TRIPLE_DOUBLE_QUOTED_STRING:
+                                case TRIPLE_SINGLE_QUOTED_STRING:
+                                case TRIPLE_ANTI_QUOTED_STRING:
+                                case LINE_STRING:
+                                {
                                     if (h.url == null) {
                                         h.url = oo.toStr().value();
                                     }
@@ -418,7 +425,13 @@ public class TsonStore implements NoApiStore {
                                                 f.arrayConstraints.add(fieldType.toArray().builder().clearParams().setParametrized(false).build().toString());
                                                 break;
                                             }
-                                            case STRING:
+                                            case DOUBLE_QUOTED_STRING:
+                                            case SINGLE_QUOTED_STRING:
+                                            case ANTI_QUOTED_STRING:
+                                            case TRIPLE_DOUBLE_QUOTED_STRING:
+                                            case TRIPLE_SINGLE_QUOTED_STRING:
+                                            case TRIPLE_ANTI_QUOTED_STRING:
+                                            case LINE_STRING:
                                             case NAME: {
                                                 f.baseFieldTypeName = fieldType.toStr().value();
                                                 f.fieldTypeName = fieldType.toStr().value();
