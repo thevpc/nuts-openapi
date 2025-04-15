@@ -1,11 +1,13 @@
 package net.thevpc.nuts.toolbox.noapi.store.swagger;
 
+import net.thevpc.nuts.NIllegalArgumentException;
 import net.thevpc.nuts.elem.*;
 import net.thevpc.nuts.io.NPath;
 import net.thevpc.nuts.toolbox.noapi.model.*;
 import net.thevpc.nuts.toolbox.noapi.store.NoApiStore;
 import net.thevpc.nuts.toolbox.noapi.util._StringUtils;
 import net.thevpc.nuts.util.NBlankable;
+import net.thevpc.nuts.util.NMsg;
 import net.thevpc.nuts.util.NOptional;
 
 import java.io.*;
@@ -420,7 +422,11 @@ public class SwaggerStore implements NoApiStore {
             }
         }
         cc.responses = new ArrayList<>();
-        call.getObject("responses").get().stream()
+        NObjectElement responses = call.getObject("responses").orNull();
+        if(responses==null){
+            throw new NIllegalArgumentException(NMsg.ofC("Missing 'responses' element in %s",call));
+        }
+        responses.stream()
                 .forEach(item -> {
                     NPairElement x = item.asPair().get();
                     NElement s = x.key();

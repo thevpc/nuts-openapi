@@ -1,32 +1,32 @@
 package net.thevpc.nuts.toolbox.noapi.store;
 
+import net.thevpc.nuts.elem.*;
 import net.thevpc.nuts.io.NPath;
 import net.thevpc.nuts.toolbox.noapi.model.*;
 import net.thevpc.nuts.util.NOptional;
 import net.thevpc.nuts.util.NStringUtils;
-import net.thevpc.tson.*;
 
 import java.util.*;
 import java.util.stream.Collectors;
 
 public class TsonStore implements NoApiStore {
-    TsonElement root;
+    NElement root;
     List<TypeCrossRef> typeCrossRefs = new ArrayList<>();
 
     public TsonStore(NPath source) {
-        root = Tson.reader().setSkipComments(false).read(source.toFile().get(), TsonElement.class);
+        root = NElements.of().parse(source.toFile().get());
     }
 
     @Override
     public NOptional<String> getTitle() {
-        return NOptional.of(root.toObject()).then(x -> x.get("info"))
-                .then(x -> x.toObject().get("title")).then(x -> x.toStr()).then(x -> x.value());
+        return root.toObject().then(x -> x.get("info").orNull())
+                .then(x -> x.asObject().get().get("title")).then(x -> x.get().asString().orNull());
     }
 
     @Override
     public NOptional<String> getVersion() {
-        return NOptional.of(root.toObject()).then(x -> x.get("info"))
-                .then(x -> x.toObject().get("version")).then(x -> x.toStr()).then(x -> x.value());
+        return root.toObject().then(x -> x.get("info").orNull())
+                .then(x -> x.asObject().get().get("version").orNull()).then(x -> x.asString().orNull());
     }
 
     @Override
@@ -36,50 +36,50 @@ public class TsonStore implements NoApiStore {
 
     @Override
     public String getId() {
-        return NOptional.of(root.toObject()).then(x -> x.get("info"))
-                .then(x -> x.toObject().get("id")).then(x -> x.toStr()).then(x -> x.value()).get();
+        return root.toObject().then(x -> x.get("info").orNull())
+                .then(x -> x.asObject().get().get("id").orNull()).then(x -> x.asString().orNull()).get();
     }
 
     @Override
     public List<MVar> findVariables() {
         return parseMVars(
-                NOptional.of(root.toObject()).then(x -> x.get("info"))
-                        .then(x -> x.toObject().get("variables")).orNull()
+                root.toObject().then(x -> x.get("info").orNull())
+                        .then(x -> x.asObject().get().get("variables").orNull()).orNull()
         );
     }
 
     @Override
     public List<MVar> findConfigVariables() {
         return parseMVars(
-                NOptional.of(root.toObject()).then(x -> x.get("info"))
-                        .then(x -> x.toObject().get("config"))
-                        .then(x -> x.toObject().get("variables")).orNull()
+                root.toObject().then(x -> x.get("info").orNull())
+                        .then(x -> x.asObject().get().get("config").orNull())
+                        .then(x -> x.asObject().get().get("variables").orNull()).orNull()
         );
     }
 
     @Override
     public NOptional<String> getDescription() {
-        return NOptional.of(root.toObject()).then(x -> x.get("info"))
-                .then(x -> x.toObject().get("description")).then(x -> x.toStr()).then(x -> x.value());
+        return root.toObject().then(x -> x.get("info").orNull())
+                .then(x -> x.asObject().get().get("description").orNull()).then(x -> x.asString().orNull());
     }
 
     @Override
     public NOptional<String> getConfigDescription() {
-        return NOptional.of(root.toObject()).then(x -> x.get("info"))
-                .then(x -> x.toObject().get("config"))
-                .then(x -> x.toObject().get("description"))
-                .then(x -> x.toStr()).then(x -> x.value());
+        return root.toObject().then(x -> x.get("info").orNull())
+                .then(x -> x.asObject().get().get("config").orNull())
+                .then(x -> x.asObject().get().get("description").orNull())
+                .then(x -> x.asString().orNull());
     }
 
     @Override
     public NOptional<MContact> getContact() {
-        TsonElement c = NOptional.of(root.toObject()).then(x -> x.get("info"))
-                .then(x -> x.toObject().get("contact")).orNull();
+        NElement c = root.toObject().then(x -> x.get("info").orNull())
+                .then(x -> x.asObject().get().get("contact").orNull()).orNull();
         if (c != null) {
             MContact mc = new MContact();
-            mc.name = NOptional.of(c.toObject().get("name")).then(x -> x.toStr()).then(x -> x.value()).get();
-            mc.email = NOptional.of(c.toObject().get("email")).then(x -> x.toStr()).then(x -> x.value()).get();
-            mc.url = NOptional.of(c.toObject().get("url")).then(x -> x.toStr()).then(x -> x.value()).get();
+            mc.name = NOptional.of(c.asObject().get().get("name").orNull()).then(x -> x.asString().orNull()).get();
+            mc.email = NOptional.of(c.asObject().get().get("email").orNull()).then(x -> x.asString().orNull()).get();
+            mc.url = NOptional.of(c.asObject().get().get("url").orNull()).then(x -> x.asString().orNull()).get();
             return NOptional.of(mc);
         }
         return NOptional.ofNamedEmpty("No contact found");
@@ -87,21 +87,21 @@ public class TsonStore implements NoApiStore {
 
     @Override
     public List<MChangeLog> findChangeLogs() {
-        TsonElement c = NOptional.of(root.toObject()).then(x -> x.get("info"))
-                .then(x -> x.toObject().get("changes")).orNull();
+        NElement c = root.toObject().then(x -> x.get("info").orNull())
+                .then(x -> x.asObject().get().get("changes").orNull()).orNull();
         List<MChangeLog> all = new ArrayList<>();
-        if (c instanceof TsonListContainer) {
-            for (TsonElement te : ((TsonListContainer) c).body()) {
+        if (c instanceof NListContainerElement) {
+            for (NElement te : ((NListContainerElement) c).children()) {
                 MChangeLog cl = new MChangeLog();
-                cl.version = NOptional.of(te.toObject().get("version")).then(x -> x.toStr()).then(x -> x.value()).get();
-                cl.date = NOptional.of(te.toObject().get("date")).then(x -> x.toStr()).then(x -> x.value()).get();
-                cl.observations = NOptional.of(te.toObject().get("observations")).then(x -> x.toStr()).then(x -> x.value()).get();
-                cl.title = NOptional.of(te.toObject().get("title")).then(x -> x.toStr()).then(x -> x.value()).get();
+                cl.version = NOptional.of(te.asObject().get().get("version").orNull()).then(x -> x.asString().orNull()).get();
+                cl.date = NOptional.of(te.asObject().get().get("date").orNull()).then(x -> x.asString().orNull()).get();
+                cl.observations = NOptional.of(te.asObject().get().get("observations").orNull()).then(x -> x.asString().orNull()).get();
+                cl.title = NOptional.of(te.asObject().get().get("title").orNull()).then(x -> x.asString().orNull()).get();
                 cl.details = new ArrayList<>();
-                TsonListContainer details = NOptional.of(te.toObject().get("details")).then(x -> x.toListContainer()).orNull();
+                NListContainerElement details = NOptional.of(te.asObject().get().get("details").orNull()).then(x -> x.toListContainer().orNull()).orNull();
                 if (details != null) {
-                    for (TsonElement d : details.body()) {
-                        cl.details.add(d.toStr().value());
+                    for (NElement d : details.children()) {
+                        cl.details.add(d.asString().orNull());
                     }
                 }
                 all.add(cl);
@@ -113,24 +113,24 @@ public class TsonStore implements NoApiStore {
     @Override
     public List<MHeader> findHeaders() {
         List<MHeader> all = new ArrayList<>();
-        TsonObject components = NOptional.of(root.toObject()).then(x -> x.get("components"))
-                .then(x -> x.toObject()).orNull();
+        NObjectElement components = root.toObject().then(x -> x.get("components"))
+                .then(x -> x.get().asObject().orNull()).orNull();
         if (components != null) {
-            for (TsonElement cc : components) {
+            for (NElement cc : components) {
                 switch (cc.type()) {
                     case NAMED_UPLET: {
-                        TsonUplet u = cc.toUplet();
+                        NUpletElement u = cc.asUplet().get();
                         if (u.name().equals("header")) {
                             MHeader h = new MHeader();
-                            for (TsonElement param : u.params()) {
+                            for (NElement param : u.params()) {
                                 if (param.isString() && h.name == null) {
-                                    h.name = param.toStr().value();
+                                    h.name = param.asString().orNull();
                                     h.typeName = "string";
                                     h.smartTypeName = "string";
                                 } else if (param.isPair()) {
-                                    TsonPair p = param.toPair();
+                                    NPairElement p = param.asPair().get();
                                     if (h.name == null) {
-                                        h.name = p.key().toStr().value();
+                                        h.name = p.key().asString().orNull();
 
                                         h.typeName = p.value().toString();
                                         h.smartTypeName = p.value().toString();
@@ -154,21 +154,21 @@ public class TsonStore implements NoApiStore {
     @Override
     public List<MSecurityScheme> findSecuritySchemes() {
         List<MSecurityScheme> all = new ArrayList<>();
-        TsonObject components = NOptional.of(root.toObject()).then(x -> x.get("components"))
-                .then(x -> x.toObject()).orNull();
+        NObjectElement components = root.toObject().thenOptional(x -> x.get("components"))
+                .thenOptional(x -> x.asObject()).orNull();
         if (components != null) {
-            for (TsonElement cc : components) {
+            for (NElement cc : components) {
                 switch (cc.type()) {
                     case NAMED_UPLET: {
-                        TsonUplet u = cc.toUplet();
+                        NUpletElement u = cc.asUplet().get();
                         if (u.name().equals("securityScheme")) {
                             MSecurityScheme h = new MSecurityScheme();
                             all.add(h);
-                            for (TsonElement param : u.params()) {
+                            for (NElement param : u.params()) {
                                 if (param.isString() && h.name == null) {
-                                    h.name = param.toStr().value();
+                                    h.name = param.asString().orNull();
                                 } else if (param.isPair()) {
-                                    TsonPair p2 = param.toPair();
+                                    NPairElement p2 = param.asPair().get();
                                     switch (p2.key().toString()) {
                                         case "name": {
                                             h.name = p2.value().toString();
@@ -180,7 +180,7 @@ public class TsonStore implements NoApiStore {
                                         }
                                     }
                                 } else if (param.isNamedUplet()) {
-                                    TsonUplet vu = param.toUplet();
+                                    NUpletElement vu = param.asUplet().get();
                                     h.typeName = NStringUtils.trim(vu.name());
                                     switch (h.typeName) {
                                         case "apiKey": {
@@ -204,10 +204,10 @@ public class TsonStore implements NoApiStore {
                                             break;
                                         }
                                     }
-                                    for (TsonElement oo : vu.params()) {
+                                    for (NElement oo : vu.params()) {
                                         switch (oo.type()) {
                                             case PAIR: {
-                                                TsonPair p2 = oo.toPair();
+                                                NPairElement p2 = oo.asPair().get();
                                                 switch (p2.key().toString()) {
                                                     case "in": {
                                                         h.in = p2.value().toString();
@@ -246,20 +246,20 @@ public class TsonStore implements NoApiStore {
     @Override
     public List<MServer> findServers() {
         List<MServer> all = new ArrayList<>();
-        TsonListContainer components = NOptional.of(root.toObject())
-                .then(x -> x.get("info"))
-                .then(x -> x.toObject().get("servers"))
-                .then(x -> x.toListContainer()).orNull();
+        NListContainerElement components = root.toObject()
+                .thenOptional(x -> x.get("info"))
+                .thenOptional(x -> x.asObject().get().get("servers"))
+                .thenOptional(x -> x.asListContainer()).orNull();
         if (components != null) {
-            for (TsonElement cc : components.body()) {
+            for (NElement cc : components.children()) {
                 switch (cc.type()) {
                     case NAMED_UPLET: {
-                        TsonUplet u = cc.toUplet();
+                        NUpletElement u = cc.asUplet().get();
                         MServer h = new MServer();
                         h.name = NStringUtils.trim(u.name());
                         h.variables = new ArrayList<>();
                         all.add(h);
-                        for (TsonElement oo : u.params()) {
+                        for (NElement oo : u.params()) {
                             switch (oo.type()) {
                                 case DOUBLE_QUOTED_STRING:
                                 case SINGLE_QUOTED_STRING:
@@ -270,12 +270,12 @@ public class TsonStore implements NoApiStore {
                                 case LINE_STRING:
                                 {
                                     if (h.url == null) {
-                                        h.url = oo.toStr().value();
+                                        h.url = oo.asString().orNull();
                                     }
                                     break;
                                 }
                                 case PAIR: {
-                                    TsonPair p2 = oo.toPair();
+                                    NPairElement p2 = oo.asPair().get();
                                     switch (p2.key().toString()) {
                                         case "url": {
                                             h.url = p2.value().toString();
@@ -304,13 +304,13 @@ public class TsonStore implements NoApiStore {
         return all;
     }
 
-    public List<MVar> parseMVars(TsonElement root) {
+    public List<MVar> parseMVars(NElement root) {
         List<MVar> all = new ArrayList<>();
         if (root != null) {
-            for (TsonElement cc : root.toListContainer().body()) {
+            for (NElement cc : root.toListContainer().get().children()) {
                 switch (cc.type()) {
                     case PAIR: {
-                        TsonPair p2 = cc.toPair();
+                        NPairElement p2 = cc.asPair().get();
                         MVar v = new MVar();
                         v.id = p2.key().toString();
                         v.name = v.id;
@@ -331,32 +331,32 @@ public class TsonStore implements NoApiStore {
     @Override
     public Map<String, TypeInfo> findTypesMap() {
         Map<String, TypeInfo> all = new LinkedHashMap<>();
-        TsonObject components = NOptional.of(root.toObject()).then(x -> x.get("components"))
-                .then(x -> x.toObject()).orNull();
+        NObjectElement components = root.toObject().thenOptional(x -> x.get("components"))
+                .thenOptional(x -> x.asObject()).orNull();
         if (components != null) {
-            for (TsonElement cc : components) {
+            for (NElement cc : components) {
                 switch (cc.type()) {
                     case NAMED_PARAMETRIZED_OBJECT: {
-                        TsonObject u = cc.toObject();
+                        NObjectElement u = cc.toObject().get();
                         if (u.name().equals("schema")) {
                             TypeInfo h = new TypeInfo();
                             h.setType("object");
-                            for (TsonElement param : u.params()) {
+                            for (NElement param : u.params()) {
                                 if (param.isAnyString() && h.getName() == null) {
-                                    h.setName(param.toStr().value());
-                                    h.setFullName(param.toStr().value());
-                                    h.setSmartName(param.toStr().value());
-                                    h.setUserType(param.toStr().value());
+                                    h.setName(param.asString().orNull());
+                                    h.setFullName(param.asString().orNull());
+                                    h.setSmartName(param.asString().orNull());
+                                    h.setUserType(param.asString().orNull());
                                     all.put(h.getName(), h);
                                 } else if (param.isPair()) {
-                                    TsonPair p2 = param.toPair();
-                                    switch (p2.key().toStr().value()) {
+                                    NPairElement p2 = param.asPair().get();
+                                    switch (p2.key().asString().orNull()) {
                                         case "description": {
-                                            h.setDescription(p2.value().toString());
+                                            h.setDescription(p2.toString());
                                             break;
                                         }
                                         case "summary": {
-                                            h.setSummary(p2.value().toString());
+                                            h.setSummary(p2.toString());
                                             break;
                                         }
                                     }
@@ -366,53 +366,53 @@ public class TsonStore implements NoApiStore {
                                 h.setDescription(resolveComments(cc));
                             }
                             // fields
-                            List<TsonElement> body = u.body().toList();
+                            List<NElement> body = u.children();
                             while (!body.isEmpty()) {
-                                TsonElement param = body.remove(0);
+                                NElement param = body.remove(0);
                                 switch (param.type()) {
                                     case PAIR: {
                                         FieldInfo f = new FieldInfo();
-                                        TsonPair p2 = param.toPair();
-                                        List<TsonAnnotation> annotations = p2.key().annotations();
-                                        for (TsonAnnotation annotation : annotations) {
+                                        NPairElement p2 = param.asPair().get();
+                                        List<NElementAnnotation> annotations = p2.key().annotations();
+                                        for (NElementAnnotation annotation : annotations) {
                                             if (annotation.name().equals("required")) {
                                                 f.required = true;
                                             } else if (annotation.name().equals("deprecated")) {
                                                 f.deprecated = true;
                                             } else if (annotation.name().equals("summary")) {
-                                                f.summary = annotation.param(0).toStr().value();
+                                                f.summary = annotation.param(0).asString().orNull();
                                             } else if (annotation.name().equals("description")) {
-                                                f.description = annotation.param(0).toStr().value();
+                                                f.description = annotation.param(0).asString().orNull();
                                             }
                                         }
-                                        TsonElement bodyElement = null;
-                                        List<TsonElement> typeElements = new ArrayList<>();
+                                        NElement bodyElement = null;
+                                        List<NElement> typeElements = new ArrayList<>();
                                         if (f.description == null) {
                                             f.description = resolveComments(p2.key());
                                         }
-                                        String fieldName = p2.key().toStr().value();
+                                        String fieldName = p2.key().asString().orNull();
                                         f.name = fieldName;
                                         h.getFields().add(f);
 
-                                        TsonElement fieldType = p2.value();
+                                        NElement fieldType = p2;
                                         switch (fieldType.type()) {
                                             case NAMED_PARAMETRIZED_OBJECT: {
-                                                TsonObjectBuilder b = fieldType.toObject().builder();
-                                                List<TsonElement> body1 = b.body();
-                                                b.clearBody();
-                                                bodyElement = Tson.ofObject(body1.stream().toArray(TsonElementBase[]::new));
+                                                NObjectElementBuilder b = fieldType.toObject().get().builder();
+                                                List<NElement> body1 = b.children();
+                                                b.clear();
+                                                bodyElement = NElements.of().ofObject(body1.toArray(new NElement[0]));
                                                 fieldType = b.build();
                                                 f.baseFieldTypeName = b.name();
                                                 f.baseFieldTypeName = fieldType.toString();
                                                 break;
                                             }
                                             case NAMED_OBJECT: {
-                                                TsonObjectBuilder b = fieldType.toObject().builder();
+                                                NObjectElementBuilder b = fieldType.toObject().get().builder();
                                                 f.baseFieldTypeName = b.name();
-                                                List<TsonElement> body1 = b.body();
-                                                b.clearBody();
-                                                bodyElement = Tson.ofObject(body1.stream().toArray(TsonElementBase[]::new));
-                                                fieldType = Tson.ofName(b.name());
+                                                List<NElement> body1 = b.children();
+                                                b.clear();
+                                                bodyElement = NElements.of().ofObject(body1.toArray(new NElement[0]));
+                                                fieldType = NElements.of().ofName(b.name());
                                                 f.fieldTypeName = b.name();
                                                 f.baseFieldTypeName = b.name();
                                                 break;
@@ -420,9 +420,9 @@ public class TsonStore implements NoApiStore {
                                             case NAMED_PARAMETRIZED_ARRAY:
                                             case NAMED_ARRAY: {
                                                 f.arrays++;
-                                                f.baseFieldTypeName = fieldType.toArray().name();
+                                                f.baseFieldTypeName = fieldType.toArray().get().name();
                                                 f.fieldTypeName = fieldType.toArray().toString();
-                                                f.arrayConstraints.add(fieldType.toArray().builder().clearParams().setParametrized(false).build().toString());
+                                                f.arrayConstraints.add(fieldType.toArray().get().builder().clearParams().setParametrized(false).build().toString());
                                                 break;
                                             }
                                             case DOUBLE_QUOTED_STRING:
@@ -433,8 +433,8 @@ public class TsonStore implements NoApiStore {
                                             case TRIPLE_ANTI_QUOTED_STRING:
                                             case LINE_STRING:
                                             case NAME: {
-                                                f.baseFieldTypeName = fieldType.toStr().value();
-                                                f.fieldTypeName = fieldType.toStr().value();
+                                                f.baseFieldTypeName = fieldType.asString().orNull();
+                                                f.fieldTypeName = fieldType.asString().orNull();
                                                 break;
                                             }
                                             default: {
@@ -445,7 +445,7 @@ public class TsonStore implements NoApiStore {
                                         typeElements.add(fieldType);
                                         boolean stillInLoop = true;
                                         while (stillInLoop && !body.isEmpty() && bodyElement == null) {
-                                            TsonElement bb = body.get(0);
+                                            NElement bb = body.get(0);
 
                                             switch (bb.type()) {
                                                 case OBJECT: {
@@ -467,8 +467,8 @@ public class TsonStore implements NoApiStore {
                                             }
                                         }
                                         if (bodyElement != null) {
-                                            for (TsonElement example : bodyElement.toObject().body().toList().stream().filter(x -> x.isNamedUplet() && x.toUplet().name().equals("example")).collect(Collectors.toList())) {
-                                                for (TsonElement p : example.toUplet().params()) {
+                                            for (NElement example : bodyElement.toObject().get().children().stream().filter(x -> x.isNamedUplet() && x.asUplet().get().name().equals("example")).collect(Collectors.toList())) {
+                                                for (NElement p : example.asUplet().get().params()) {
                                                     f.examples.add(new MExample(
                                                             NStringUtils.firstNonBlank(resolveComments(p), resolveComments(example)),
                                                             p
@@ -479,9 +479,9 @@ public class TsonStore implements NoApiStore {
                                         break;
                                     }
                                     case NAMED_UPLET: {
-                                        TsonUplet uplet = param.toUplet();
-                                        if (uplet.isNamedUplet() && uplet.name().equals("example") && uplet.paramsCount() > 0) {
-                                            for (TsonElement p : uplet.toUplet().params()) {
+                                        NUpletElement uplet = param.asUplet().get();
+                                        if (uplet.isNamedUplet() && uplet.name().equals("example") && uplet.params().size() > 0) {
+                                            for (NElement p : uplet.asUplet().get().params()) {
                                                 h.examples.add(new MExample(
                                                         NStringUtils.firstNonBlank(resolveComments(p), resolveComments(uplet)),
                                                         p
@@ -553,11 +553,17 @@ public class TsonStore implements NoApiStore {
         return findType(baseTypeName, baseTypeName + String.join("", nac), nac, repo);
     }
 
-    private String resolveComments(TsonElement e) {
+    private String resolveComments(NElement e) {
         StringBuilder comments = new StringBuilder();
-        TsonComments comments1 = e.comments();
+        NElementComments comments1 = e.comments();
         if (comments1 != null) {
-            for (TsonComment comment : comments1.getComments()) {
+            for (NElementComment comment : comments1.leadingComments()) {
+                if (comments.length() > 0) {
+                    comments.append("\n");
+                }
+                comments.append(comment.text());
+            }
+            for (NElementComment comment : comments1.trailingComments()) {
                 if (comments.length() > 0) {
                     comments.append("\n");
                 }

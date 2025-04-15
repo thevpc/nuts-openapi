@@ -18,14 +18,12 @@ import net.thevpc.nuts.toolbox.noapi.model.FieldInfo;
 import net.thevpc.nuts.toolbox.noapi.model.SupportedTargetType;
 import net.thevpc.nuts.toolbox.noapi.model.TypeInfo;
 import net.thevpc.nuts.util.NStringUtils;
-import net.thevpc.tson.TsonElement;
 import org.asciidoctor.Asciidoctor;
 import org.asciidoctor.OptionsBuilder;
 import org.asciidoctor.SafeMode;
 
 import java.io.*;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -141,17 +139,11 @@ public class NoApiUtils {
     }
 
     public static String jsonTextString(Object example) {
-        if (example instanceof TsonElement) {
-            TsonElement t = (TsonElement) example;
-            if (t.isString()) {
-                return t.toStr().value();
-            }
-            if (t.isName()) {
-                return t.toStr().value();
-            }
-            return t.toString(false);
-        }
         if (example instanceof NElement) {
+            NElement t = (NElement) example;
+            if(t.isArray()) {
+                return t.asString().get();
+            }
             String ss = NElements.of().json().normalize(((NElement) example)).toString(false);
             return ss;
         }

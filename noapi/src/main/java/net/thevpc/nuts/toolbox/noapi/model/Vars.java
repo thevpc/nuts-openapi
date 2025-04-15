@@ -1,8 +1,8 @@
 package net.thevpc.nuts.toolbox.noapi.model;
 
+import net.thevpc.nuts.elem.NElement;
 import net.thevpc.nuts.util.NMsg;
 import net.thevpc.nuts.util.NStringUtils;
-import net.thevpc.tson.TsonElement;
 
 import java.util.Map;
 
@@ -34,11 +34,11 @@ public class Vars {
         if(a==null){
             return "";
         }
-        if(a instanceof TsonElement){
-            if(((TsonElement) a).isAnyString()){
-                return format(((TsonElement) a).toStr().value());
+        if(a instanceof NElement){
+            if(((NElement) a).isAnyString()){
+                return format(((NElement) a).asString().get());
             }
-            return format(((TsonElement) a).toString());
+            return format(((NElement) a).toString());
         }
         return format(a.toString()).trim();
     }
