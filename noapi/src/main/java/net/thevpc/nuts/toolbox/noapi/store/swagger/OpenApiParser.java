@@ -4,6 +4,7 @@ import net.thevpc.nuts.elem.*;
 import net.thevpc.nuts.toolbox.noapi.model.*;
 import net.thevpc.nuts.toolbox.noapi.store.NoApiStore;
 import net.thevpc.nuts.util.NBlankable;
+import net.thevpc.nuts.util.NLiteral;
 
 import java.util.*;
 
@@ -62,7 +63,7 @@ public class OpenApiParser {
                 tt.setType("array");
             } else if (
                     !NBlankable.isBlank(value.getString("$ref").orNull())
-                            || !NBlankable.isBlank(value.getStringByPath("schema", "$ref").orNull())
+                            || !NBlankable.isBlank(value.getByPath("schema", "$ref").map(NElement::asLiteral).flatMap(NLiteral::asString).orNull())
             ) {
                 tt.setType("ref");
             } else {
@@ -78,8 +79,8 @@ public class OpenApiParser {
             tt.setRef(userNameFromRefValue(tt.getRefLong()));
             tt.setUserType("$ref");
             tt.setSmartName(tt.getRef());
-        } else if (!NBlankable.isBlank(value.getStringByPath("schema", "$ref").orNull())) {
-            tt.setRefLong(value.getStringByPath("schema", "$ref").orNull());
+        } else if (!NBlankable.isBlank(value.getByPath("schema", "$ref").map(NElement::asLiteral).flatMap(NLiteral::asString).orNull())) {
+            tt.setRefLong(value.getByPath("schema", "$ref").map(NElement::asLiteral).flatMap(NLiteral::asString).orNull());
             tt.setRef(userNameFromRefValue(tt.getRefLong()));
             tt.setUserType("$ref");
             tt.setSmartName(tt.getRef());

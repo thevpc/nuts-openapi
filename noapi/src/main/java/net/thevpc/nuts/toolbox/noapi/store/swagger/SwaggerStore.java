@@ -7,6 +7,7 @@ import net.thevpc.nuts.toolbox.noapi.model.*;
 import net.thevpc.nuts.toolbox.noapi.store.NoApiStore;
 import net.thevpc.nuts.toolbox.noapi.util._StringUtils;
 import net.thevpc.nuts.util.NBlankable;
+import net.thevpc.nuts.util.NLiteral;
 import net.thevpc.nuts.util.NMsg;
 import net.thevpc.nuts.util.NOptional;
 
@@ -95,7 +96,7 @@ public class SwaggerStore implements NoApiStore {
 
     @Override
     public NOptional<String> getConfigDescription() {
-        return _info().getStringByPath("custom", "config", "description");
+        return _info().getByPath("custom", "config", "description").map(NElement::asLiteral).flatMap(NLiteral::asString);
     }
 
     @Override
@@ -138,7 +139,7 @@ public class SwaggerStore implements NoApiStore {
 
     @Override
     public String getId() {
-        return _root().getStringByPath("custom", "openapi-document-id").get();
+        return _root().getByPath("custom", "openapi-document-id").map(NElement::asLiteral).flatMap(NLiteral::asString).get();
     }
 
     @Override
