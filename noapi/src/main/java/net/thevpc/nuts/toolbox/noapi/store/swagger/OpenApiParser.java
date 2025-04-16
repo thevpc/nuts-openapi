@@ -54,15 +54,15 @@ public class OpenApiParser {
     public TypeInfo parseOneType(NObjectElement value, String name0, Map<String, TypeInfo> allTypes) {
         NObjectElement v = value.asObject().get();
         TypeInfo tt = new TypeInfo();
-        tt.setName(v.getString("name").orElse(name0));
-        tt.setType(value.getString("type").orNull());
+        tt.setName(v.getStringValue("name").orElse(name0));
+        tt.setType(value.getStringValue("type").orNull());
         if (NBlankable.isBlank(tt.getType())) {
             if (value.get("properties").orNull() != null) {
                 tt.setType("object");
             } else if (value.get("items").orNull() != null) {
                 tt.setType("array");
             } else if (
-                    !NBlankable.isBlank(value.getString("$ref").orNull())
+                    !NBlankable.isBlank(value.getStringValue("$ref").orNull())
                             || !NBlankable.isBlank(value.getByPath("schema", "$ref").map(NElement::asLiteral).flatMap(NLiteral::asString).orNull())
             ) {
                 tt.setType("ref");
@@ -71,11 +71,11 @@ public class OpenApiParser {
             }
         }
         tt.setSmartName(tt.getType());
-        tt.setDescription(v.getString("description").orNull());
-        tt.setSummary(v.getString("summary").orNull());
+        tt.setDescription(v.getStringValue("description").orNull());
+        tt.setSummary(v.getStringValue("summary").orNull());
         tt.getExamples().add(new MExample(null,value.get("example").orNull()));
-        if (!NBlankable.isBlank(value.getString("$ref").orNull())) {
-            tt.setRefLong(value.getString("$ref").orNull());
+        if (!NBlankable.isBlank(value.getStringValue("$ref").orNull())) {
+            tt.setRefLong(value.getStringValue("$ref").orNull());
             tt.setRef(userNameFromRefValue(tt.getRefLong()));
             tt.setUserType("$ref");
             tt.setSmartName(tt.getRef());
@@ -127,7 +127,7 @@ public class OpenApiParser {
             NArrayElement requiredElem = v.getArray("required").orNull();
             if (requiredElem != null) {
                 for (NElement e : requiredElem) {
-                    String a = e.asString().orElse("");
+                    String a = e.asStringValue().orElse("");
                     if (!NBlankable.isBlank(a)) {
                         a = a.trim();
                         requiredSet.add(a);
@@ -138,10 +138,10 @@ public class OpenApiParser {
             if (a != null) {
                 for (NPairElement p : a.pairs()) {
                     FieldInfo ff = new FieldInfo();
-                    ff.name = p.key().asString().orElse("").trim();
+                    ff.name = p.key().asStringValue().orElse("").trim();
                     NObjectElement prop = p.value().asObject().get();
-                    ff.description = prop.getString("description").orNull();
-                    ff.summary = prop.getString("summary").orNull();
+                    ff.description = prop.getStringValue("description").orNull();
+                    ff.summary = prop.getStringValue("summary").orNull();
                     NElement example = prop.get("example").orNull();
                     if(example!=null) {
                         ff.examples.add(new MExample(null,example));
@@ -153,10 +153,10 @@ public class OpenApiParser {
                 return tt;
             }
         } else {
-            tt.setFormat(value.getString("format").orNull());
-            tt.setMinLength(value.getString("minLength").orNull());
-            tt.setMaxLength(value.getString("maxLength").orNull());
-            tt.setRefLong(value.getString("$ref").orNull());
+            tt.setFormat(value.getStringValue("format").orNull());
+            tt.setMinLength(value.getStringValue("minLength").orNull());
+            tt.setMaxLength(value.getStringValue("maxLength").orNull());
+            tt.setRefLong(value.getStringValue("$ref").orNull());
             if (!NBlankable.isBlank(tt.getRefLong())) {
                 tt.setRef(userNameFromRefValue(tt.getRefLong()));
             }
@@ -176,7 +176,7 @@ public class OpenApiParser {
                     tt.setUserType("enum");
                 }
                 for (NElement ee : senum) {
-                    tt.getEnumValues().add(ee.asString().get());
+                    tt.getEnumValues().add(ee.asStringValue().get());
                 }
             }
         }
@@ -191,7 +191,7 @@ public class OpenApiParser {
             return res;
         }
         for (NPairElement entry : schemas.pairs()) {
-            String name0 = entry.key().asString().get();
+            String name0 = entry.key().asStringValue().get();
             NElement value = entry.value();
             TypeInfo a = parseOneType(value.asObject().get(), name0, res);
             if (a != null) {

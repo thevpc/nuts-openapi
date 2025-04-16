@@ -18,7 +18,7 @@ public class AppMessages {
         this.parent = parent;
         NElement e = NElements.of().json().parse(url);
         for (NPairElement entry : e.asObject().get().pairs()) {
-            values.put(entry.key().asString().get(), entry.value().asString().get());
+            values.put(entry.key().asStringValue().get(), entry.value().asStringValue().get());
         }
     }
 

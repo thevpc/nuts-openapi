@@ -36,7 +36,7 @@ public class Vars {
         }
         if(a instanceof NElement){
             if(((NElement) a).isAnyString()){
-                return format(((NElement) a).asString().get());
+                return format(((NElement) a).asStringValue().get());
             }
             return format(((NElement) a).toString());
         }

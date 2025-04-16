@@ -142,7 +142,7 @@ public class NoApiUtils {
         if (example instanceof NElement) {
             NElement t = (NElement) example;
             if(t.isArray()) {
-                return t.asString().get();
+                return t.asStringValue().get();
             }
             String ss = NElements.of().json().normalize(((NElement) example)).toString(false);
             return ss;

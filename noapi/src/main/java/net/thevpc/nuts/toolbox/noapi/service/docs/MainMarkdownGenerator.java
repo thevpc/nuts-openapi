@@ -493,7 +493,7 @@ public class MainMarkdownGenerator {
 
 
     private String getSmartTypeName(NObjectElement obj) {
-        String e = _StringUtils.nvl(obj.get("type").flatMap(x->x.asString()).map(x->x.stringValue()).orNull(), "string");
+        String e = _StringUtils.nvl(obj.get("type").flatMap(x->x.asStringValue()).orNull(), "string");
         if ("array".equals(e)) {
             NObjectElement items = obj.getObject("items").orNull();
             if (items != null) {
@@ -536,7 +536,7 @@ public class MainMarkdownGenerator {
     }
 
     private String requiredSuffix(NObjectElement obj) {
-        return requiredSuffix(obj.getBoolean("required").orElse(false));
+        return requiredSuffix(obj.getBooleanValue("required").orElse(false));
     }
 
     private String requiredSuffix(boolean obj) {
