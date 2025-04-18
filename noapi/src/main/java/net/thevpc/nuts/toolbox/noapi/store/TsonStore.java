@@ -341,7 +341,7 @@ public class TsonStore implements NoApiStore {
                         if (u.name().equals("schema")) {
                             TypeInfo h = new TypeInfo();
                             h.setType("object");
-                            for (NElement param : u.params()) {
+                            for (NElement param : u.params().get()) {
                                 if (param.isAnyString() && h.getName() == null) {
                                     h.setName(param.asStringValue().orNull());
                                     h.setFullName(param.asStringValue().orNull());

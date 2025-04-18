@@ -141,9 +141,9 @@ public class NoApiUtils {
     public static String jsonTextString(Object example) {
         if (example instanceof NElement) {
             NElement t = (NElement) example;
-            if(t.isArray()) {
-                return t.asStringValue().get();
-            }
+//            if(t.isArray()) {
+//                return t.asStringValue().get();
+//            }
             String ss = NElements.of().json().normalize(((NElement) example)).toString(false);
             return ss;
         }
