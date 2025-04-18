@@ -1,10 +1,12 @@
 package net.thevpc.nuts.toolbox.noapi.model;
 
+import net.thevpc.nuts.elem.NElement;
+
 public class MExample {
     public String description;
-    public Object value;
+    public NElement value;
 
-    public MExample(String description, Object value) {
+    public MExample(String description, NElement value) {
         this.description = description;
         this.value = value;
     }

@@ -93,32 +93,24 @@ public class OpenApiParser {
                 tt.setArrayComponentType(a);
                 TypeInfo refType = allTypes.get(a.getSmartName());
                 tt.setSmartName(a.getSmartName() + "[]");
-                Object e = a.getExamples();
+                List<MExample> e = a.getExamples();
                 if (e == null && refType != null) {
                     e = refType.getExamples();
                 }
                 if (e != null) {
-                    if (e instanceof NElement) {
-                        tt.getExamples().add(new MExample(null,NElements.of().ofArray((NElement) e)));
-                    } else {
-                        tt.getExamples().add(new MExample(null,Arrays.asList(e)));
-                    }
+                    tt.getExamples().addAll(e);
                 }
             } else {
                 TypeInfo a = parseOneType(items, null, allTypes);
                 tt.setArrayComponentType(a);
                 tt.setSmartName(a.getSmartName() + "[]");
                 TypeInfo refType = allTypes.get(a.getSmartName());
-                Object e = a.getExamples();
+                List<MExample> e = a.getExamples();
                 if (e == null && refType != null) {
                     e = refType.getExamples();
                 }
                 if (e != null) {
-                    if (e instanceof NElement) {
-                        tt.getExamples().add(new MExample(null,NElements.of().ofArrayBuilder().add((NElement) e).build()));
-                    } else {
-                        tt.getExamples().add(new MExample(null,Arrays.asList(e)));
-                    }
+                    tt.getExamples().addAll(e);
                 }
             }
             tt.setUserType(tt.getSmartName());

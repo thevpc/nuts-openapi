@@ -148,7 +148,7 @@ public class SwaggerStore implements NoApiStore {
         for (NPairElement srv : apiElement.asObject().get().getObjectByPath("custom", "config", "variables").orElse(NObjectElement.ofEmpty()).pairs()) {
             String id = srv.key().asStringValue().get();
             String name = (srv.value().asObject().get().getStringValue("name").get());
-            Object example = (srv.value().asObject().get().get("example").orNull());
+            NElement example = (srv.value().asObject().get().get("example").orNull());
             String description = (srv.value().asObject().get().getStringValue("description").get());
 
             all.add(new MVar(id, name, description, example == null ? new MExample[0] : new MExample[]{new MExample(null, example)}, null, null));
@@ -404,7 +404,7 @@ public class SwaggerStore implements NoApiStore {
                 NObjectElement iiv = ii.value().asObject().get();
                 TypeInfo o = new OpenApiParser().parseOneType(iiv, null, allTypes);
                 String description = iiv.getStringValue("description").orNull();
-                Object example = iiv.get("example").orNull();
+                NElement example = iiv.get("example").orNull();
                 vv.type = o;
                 cc.requestBody.contents.add(vv);
                 if (o.getRef() != null) {
