@@ -136,7 +136,7 @@ public class NOpenAPIService {
     }
 
     private void generateMainDocumentFromFile(DocItemInfo docInfo, NPath targetPathObj, String filePart, String documentVersion, SupportedTargetType targetType, NPath sourcePath, NPath parentPath, NoApiStore store, String target, NPath sourceFolder, Map<String, String> vars, boolean keep) {
-        MainMarkdownGenerator mg = new MainMarkdownGenerator(session, msg);
+        MainMarkdownGenerator mg = new MainMarkdownGenerator(msg);
         Map<String, String> vars2 = new HashMap<>(vars);
         vars2.putAll(docInfo.vars);
         MdDocument md = mg.createMarkdown(store, sourceFolder, vars2, defaultAdocHeaders);

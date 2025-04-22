@@ -1,6 +1,5 @@
 package net.thevpc.nuts.toolbox.noapi.service.docs;
 
-import net.thevpc.nuts.*;
 import net.thevpc.nuts.elem.*;
 import net.thevpc.nuts.expr.*;
 import net.thevpc.nuts.io.NPath;
@@ -19,14 +18,12 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 public class MainMarkdownGenerator {
-    private NSession session;
     private AppMessages msg;
     private Properties httpCodes = new Properties();
     private OpenApiParser openApiParser = new OpenApiParser();
     private int maxExampleInlineLength = 80;
 
-    public MainMarkdownGenerator(NSession session, AppMessages msg) {
-        this.session = session;
+    public MainMarkdownGenerator(AppMessages msg) {
         this.msg = msg;
         try (InputStream is = getClass().getResourceAsStream("/net/thevpc/nuts/toolbox/noapi/http-codes.properties")) {
             httpCodes.load(is);
@@ -130,19 +127,19 @@ public class MainMarkdownGenerator {
             all.add(NoApiUtils.asText(configVar.getDescription()));
             all.add(MdFactory.endParagraph());
             List<MExample> examples = configVar.getExamples();
-            if(examples.size()==1) {
+            if (examples.size() == 1) {
                 all.add(NoApiUtils.asText("The following is an example :"));
                 MExample example = examples.get(0);
-                if(!NBlankable.isBlank(example.description)){
+                if (!NBlankable.isBlank(example.description)) {
                     all.add(NoApiUtils.asTextTrimmed(example.description));
                 }
                 all.add(MdFactory.codeBacktick3("", vars2.formatObject(example.value), false));
-            }else if(examples.size()>1){
+            } else if (examples.size() > 1) {
                 all.add(NoApiUtils.asText("The following are some examples :"));
-                int eIndex=1;
+                int eIndex = 1;
                 for (MExample example : examples) {
-                    all.add(NoApiUtils.asText("Example "+eIndex));
-                    if(!NBlankable.isBlank(example.description)){
+                    all.add(NoApiUtils.asText("Example " + eIndex));
+                    if (!NBlankable.isBlank(example.description)) {
                         all.add(NoApiUtils.asTextTrimmed(example.description));
                     }
                     all.add(MdFactory.codeBacktick3("", vars2.formatObject(example.value), false));
@@ -420,7 +417,7 @@ public class MainMarkdownGenerator {
                                     NoApiUtils.asText(p.name),
                                     NoApiUtils.codeElement(p.schema, false, requiredSuffix(p.required), msg),
                                     NoApiUtils.asText(p.description == null ? "" : p.description.trim()),
-                                    NoApiUtils.jsonTextElementInlined(p.examples.isEmpty()?null:p.examples.get(0).value)
+                                    NoApiUtils.jsonTextElementInlined(p.examples.isEmpty() ? null : p.examples.get(0).value)
                             )
                     );
                 }
@@ -442,8 +439,8 @@ public class MainMarkdownGenerator {
     private void _fillApiPaths(NoApiStore store, List<MdElement> all, Vars vars2, Templater templater) {
         all.add(MdFactory.endParagraph());
         all.add(MdFactory.title(2, msg.get("API_PATHS").get()));
-        List<MPath> paths=store.findPaths();
-        paths=paths.stream().filter(x->templater.evalBoolean(x.enabled, true)).collect(Collectors.toList());
+        List<MPath> paths = store.findPaths();
+        paths = paths.stream().filter(x -> templater.evalBoolean(x.enabled, true)).collect(Collectors.toList());
         int apiSize = paths.size();
         all.add(NoApiUtils.asText(NMsg.ofV(msg.get("API_PATHS.body").get(), NMaps.of("apiSize", apiSize)).toString()));
         all.add(MdFactory.endParagraph());
@@ -455,7 +452,7 @@ public class MainMarkdownGenerator {
         all.add(NoApiUtils.asText(msg.get("API_PATHS.text").get()));
         for (MPath path : paths) {
             for (MCall call : path.calls) {
-                _fillApiPathMethod(store,call, path, all);
+                _fillApiPathMethod(store, call, path, all);
             }
         }
     }
@@ -493,7 +490,7 @@ public class MainMarkdownGenerator {
 
 
     private String getSmartTypeName(NObjectElement obj) {
-        String e = _StringUtils.nvl(obj.get("type").flatMap(x->x.asStringValue()).orNull(), "string");
+        String e = _StringUtils.nvl(obj.get("type").flatMap(x -> x.asStringValue()).orNull(), "string");
         if ("array".equals(e)) {
             NObjectElement items = obj.getObject("items").orNull();
             if (items != null) {
@@ -506,7 +503,7 @@ public class MainMarkdownGenerator {
         }
     }
 
-    private void _fillApiPathMethodParam(List<MHeader> headerParameters, List<MdElement> all) {
+    private void _fillApiPathMethodParam(List<MParam> headerParameters, List<MdElement> all) {
         MdTable tab = new MdTable(
                 new MdColumn[]{
                         new MdColumn(NoApiUtils.asText(msg.get("NAME").get()), MdHorizontalAlign.LEFT),
@@ -543,10 +540,10 @@ public class MainMarkdownGenerator {
         return obj ? (" [" + msg.get("REQUIRED").get() + "]") : (" [" + msg.get("OPTIONAL").get() + "]");
     }
 
-    private void _fillApiPathMethod(NoApiStore store, MCall call,MPath path, List<MdElement> all) {
+    private void _fillApiPathMethod(NoApiStore store, MCall call, MPath path, List<MdElement> all) {
 
-        String nsummary = NStringUtils.firstNonBlank(call.summary,path.summary);
-        String ndescription = NStringUtils.firstNonBlank(call.description,path.description);
+        String nsummary = NStringUtils.firstNonBlank(call.summary, path.summary);
+        String ndescription = NStringUtils.firstNonBlank(call.description, path.description);
         all.add(MdFactory.endParagraph());
         String method = NStringUtils.trim(call.method).toUpperCase();
         String url = NStringUtils.trim(path.url);
@@ -653,22 +650,22 @@ public class MainMarkdownGenerator {
 
                         );
                         all.add(tab);
-                        if(item.examples.size()==1) {
+                        if (item.examples.size() == 1) {
                             all.add(MdFactory.text(msg.get("request.body.example.intro").get()));
                             all.add(MdFactory.text(":\n"));
                             MExample example = item.examples.get(0);
-                            if(!NBlankable.isBlank(example.description)){
+                            if (!NBlankable.isBlank(example.description)) {
                                 all.add(NoApiUtils.asTextTrimmed(example.description));
                             }
                             all.add(NoApiUtils.jsonTextElement(example.value));
-                        }else if(item.examples.size()>1){
+                        } else if (item.examples.size() > 1) {
                             all.add(MdFactory.text(msg.get("request.body.example.intro.multi").get()));
                             all.add(MdFactory.text(":\n"));
-                            int eIndex=1;
+                            int eIndex = 1;
                             for (MExample example : item.examples) {
-                                all.add(NoApiUtils.asText("Example "+eIndex));
+                                all.add(NoApiUtils.asText("Example " + eIndex));
                                 all.add(MdFactory.text(":\n"));
-                                if(!NBlankable.isBlank(example.description)){
+                                if (!NBlankable.isBlank(example.description)) {
                                     all.add(NoApiUtils.asTextTrimmed(example.description));
                                 }
                                 all.add(NoApiUtils.jsonTextElement(example.value));
@@ -700,93 +697,49 @@ public class MainMarkdownGenerator {
                 all.add(MdFactory.text("."));
             }
             for (MCall.Content content : response.contents) {
-                List<MExample> examples = content.type.getExamples();
-                for (MExample example : examples) {
-                    if (content.type.getUserType().equals("$ref")) {
-                        if (NBlankable.isBlank(example.value)) {
-                            all.add(MdFactory.table()
-                                    .addColumns(
-                                            MdFactory.column().setName(msg.get("RESPONSE_MODEL").get()),
-                                            MdFactory.column().setName(msg.get("RESPONSE_TYPE").get())
+                all.add(MdFactory.endParagraph());
+                if (content.type.getUserType().equals("$ref")) {
+                    all.add(MdFactory.table()
+                            .addColumns(
+                                    MdFactory.column().setName(msg.get("RESPONSE_MODEL").get()),
+                                    MdFactory.column().setName(msg.get("RESPONSE_TYPE").get())//,
+                            )
+                            .addRows(
+                                    MdFactory.row().addCells(
+                                            NoApiUtils.asText(content.contentType),
+                                            NoApiUtils.asText(content.type.getRef())
                                     )
-                                    .addRows(
-                                            MdFactory.row().addCells(
-                                                    NoApiUtils.asText(content.contentType),
-                                                    NoApiUtils.asText(content.type.getRef())
-                                            )
-                                    ).build()
-                            );
-                        } else if (example.value.toString().trim().length() <= maxExampleInlineLength) {
-                            all.add(MdFactory.table()
-                                    .addColumns(
-                                            MdFactory.column().setName(msg.get("RESPONSE_MODEL").get()),
-                                            MdFactory.column().setName(msg.get("RESPONSE_TYPE").get())
+                            ).build()
+                    );
+                } else {
+                    all.add(MdFactory.table()
+                            .addColumns(
+                                    MdFactory.column().setName(msg.get("RESPONSE_MODEL").get()),
+                                    MdFactory.column().setName(msg.get("RESPONSE_TYPE").get())
+                            )
+                            .addRows(
+                                    MdFactory.row().addCells(
+                                            NoApiUtils.asText(content.contentType),
+                                            NoApiUtils.codeElement(content.type, true, "", msg)
+                                            //NoApiUtils.asText(o.getRef())
                                     )
-                                    .addRows(
-                                            MdFactory.row().addCells(
-                                                    NoApiUtils.asText(content.contentType),
-                                                    NoApiUtils.asText(content.type.getRef())
-                                            )
-                                    ).build()
-                            );
-                            if (!NBlankable.isBlank(example.value)) {
-                                all.add(MdFactory.text(msg.get("response.body.example.intro").get()));
-                                all.add(MdFactory.text(":\n"));
-                                all.add(NoApiUtils.jsonTextElement(example.value));
-                            }
-                        } else {
-                            all.add(MdFactory.table()
-                                            .addColumns(
-                                                    MdFactory.column().setName(msg.get("RESPONSE_MODEL").get()),
-                                                    MdFactory.column().setName(msg.get("RESPONSE_TYPE").get())//,
-//                                                MdFactory.column().setName(msg.get("EXAMPLE").get())
-                                            )
-                                            .addRows(
-                                                    MdFactory.row().addCells(
-                                                            NoApiUtils.asText(content.contentType),
-                                                            NoApiUtils.asText(content.type.getRef())//,
-//                                                        MdFactory.seq(NoApiUtils.asText(msg.get("SEE_BELOW").get()), asText("..."))
-                                                    )
-                                            ).build()
-                            );
-                            if (!NBlankable.isBlank(example.value)) {
-                                all.add(MdFactory.text(msg.get("response.body.example.intro").get()));
-                                all.add(MdFactory.text(":\n"));
-                                all.add(NoApiUtils.jsonTextElement(example.value));
-                            }
-                        }
-                    } else {
-                        all.add(MdFactory.endParagraph());
-
-                        all.add(MdFactory.table()
-                                .addColumns(
-                                        MdFactory.column().setName(msg.get("RESPONSE_MODEL").get()),
-                                        MdFactory.column().setName(msg.get("RESPONSE_TYPE").get())
-                                )
-                                .addRows(
-                                        MdFactory.row().addCells(
-                                                NoApiUtils.asText(content.contentType),
-                                                NoApiUtils.codeElement(content.type, true, "", msg)
-                                                //NoApiUtils.asText(o.getRef())
-                                        )
-                                ).build()
-                        );
-                        if (!NBlankable.isBlank(example.value)) {
+                            ).build()
+                    );
+                }
+                all.add(MdFactory.endParagraph());
+                List<MExample> examples = content.type.getExamples().stream().filter(x -> !NBlankable.isBlank(x) && !NBlankable.isBlank(x.value)).distinct().collect(Collectors.toList());
+                if (!examples.isEmpty()) {
+                    for (int i = 0; i < examples.size(); i++) {
+                        MExample example = examples.get(0);
+                        if(i==0){
                             all.add(MdFactory.text(msg.get("response.body.example.intro").get()));
-                            all.add(MdFactory.text(":\n"));
-                            all.add(NoApiUtils.jsonTextElement(example.value));
+                        }else{
+                            all.add(MdFactory.text(msg.get("response.body.example.intro.other").get()));
                         }
-//                            all.add(MdFactory.title(6, msg.get("RESPONSE_MODEL").get() + " - " + content.getKey()));
-////                        all.add(MdFactory.endParagraph());
-//                            if (o.getRef() != null) {
-//                                all.add(MdFactory.title(6, msg.get("RESPONSE_TYPE").get() + " - " + o.getRef()));
-//                            } else {
-//                                all.add(MdFactory.text("\n"));
-//                                all.add(NoApiUtils.codeElement(o, true, "", msg));
-//                            }
+                        all.add(MdFactory.text(":\n"));
+                        all.add(NoApiUtils.jsonTextElement(example.value));
                     }
                 }
-
             }
         }
 

@@ -7,9 +7,9 @@ public class MCall {
     public String method;
     public String summary;
     public String description;
-    public List<MHeader> headerParameters;
-    public List<MHeader> queryParameters;
-    public List<MHeader> pathParameters;
+    public List<MParam> headerParameters;
+    public List<MParam> queryParameters;
+    public List<MParam> pathParameters;
     public RequestBody requestBody;
     public List<Response> responses;
 

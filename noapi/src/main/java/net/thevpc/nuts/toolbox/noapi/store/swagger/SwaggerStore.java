@@ -6,10 +6,7 @@ import net.thevpc.nuts.io.NPath;
 import net.thevpc.nuts.toolbox.noapi.model.*;
 import net.thevpc.nuts.toolbox.noapi.store.NoApiStore;
 import net.thevpc.nuts.toolbox.noapi.util._StringUtils;
-import net.thevpc.nuts.util.NBlankable;
-import net.thevpc.nuts.util.NLiteral;
-import net.thevpc.nuts.util.NMsg;
-import net.thevpc.nuts.util.NOptional;
+import net.thevpc.nuts.util.*;
 
 import java.io.*;
 import java.util.*;
@@ -227,6 +224,55 @@ public class SwaggerStore implements NoApiStore {
         return all;
     }
 
+    private List<MParam> _parseParamList(List<NElement> rr, String url, String paramType) {
+        List<MParam> all = new ArrayList<>();
+        for (NElement item : rr) {
+            MParam h = new MParam();
+            NObjectElement vobj;
+            if(item.asPair().isPresent()){
+                NPairElement ee = item.asPair().get();
+                h.name = ee.key().toString();
+                if(ee.value().asObject().isPresent()){
+                    vobj=ee.value().asObject().get();
+                }else if(ee.value().isNull()){
+                    vobj=NElements.of().ofEmptyObject();
+                }else{
+                    throw new NIllegalArgumentException(NMsg.ofC("expected pair of string:object fo parameters content"));
+                }
+            }else if(item.asObject().isPresent()){
+                NObjectElement ee = item.asObject().get();
+                h.name = ee.name();
+                h.name = ee.getStringValue("name").orElse(h.name);
+                vobj=ee;
+            }else{
+                throw new NIllegalArgumentException(NMsg.ofC("expected pair or object fo parameters content"));
+            }
+            h.in = vobj.getStringValue("in").orNull();
+            h.deprecated = vobj.getBooleanValue("deprecated").orElse(false);
+            h.required = vobj.getBooleanValue("required").orElse(false);
+            h.typeName = vobj.getStringValue("type")
+                    .orElseUse(() ->
+                            vobj.getObject("schema")
+                                    .orElse(NObjectElement.ofEmpty())
+                                    .getStringValue("type")
+                    )
+                    .orElse("");
+            h.description = vobj.getStringValue("description").orElse("");
+            NElement example = vobj.get("example").orNull();
+            if (example != null) {
+                h.examples.add(new MExample(null, example));
+            }
+            h.smartTypeName = getSmartTypeName(vobj);
+            if (url != null) {
+                typeCrossRefs.add(new TypeCrossRef(
+                        h.typeName, url, paramType
+                ));
+            }
+            all.add(h);
+        }
+        return all;
+    }
+
     private String getSmartTypeName(NObjectElement obj) {
         String e = _StringUtils.nvl(obj.getStringValue("type").orNull(), "string");
         if ("array".equals(e)) {
@@ -355,13 +401,24 @@ public class SwaggerStore implements NoApiStore {
             p.calls = new ArrayList<>();
             for (NElement sub : pair.value().asObject().get()) {
                 NPairElement v = sub.asPair().get();
-                switch (v.key().asStringValue().get()) {
+                switch (NStringUtils.trim(v.key().asStringValue().get()).toLowerCase()) {
                     case "enabled":
                     case "summary":
-                    case "description": {
+                    case "description":
+                    case "parameters":
+                    {
                         break;
                     }
-                    default: {
+                    case "post":
+                    case "get":
+                    case "put":
+                    case "patch":
+                    case "head":
+                    case "options":
+                    case "trace":
+                    case "connect":
+                    case "delete":
+                    {
                         MCall call = _fillApiPathMethod(
                                 v.value().asObject().orElse(NElements.of().ofEmptyObject()),
                                 v.key().asStringValue().get(),
@@ -369,6 +426,10 @@ public class SwaggerStore implements NoApiStore {
                                 dparameters
                         );
                         p.calls.add(call);
+                        break;
+                    }
+                    default: {
+                        throw new NIllegalArgumentException(NMsg.ofC("unsupported method '%s' in %s",v.key().asStringValue().get(),p.url));
                     }
                 }
             }
@@ -385,11 +446,22 @@ public class SwaggerStore implements NoApiStore {
         cc.summary = call.getStringValue("summary").orNull();
         cc.description = call.getStringValue("description").orNull();
         NArrayElement parameters = call.getArray("parameters")
-                .orElseUse(() -> NOptional.of(dparameters))
                 .orElseGet(() -> NArrayElementBuilder.of().build());
-        cc.headerParameters = _parseHeaderList(parameters.stream().filter(x -> "header".equals(x.asObject().get().getStringValue("in").orNull())).collect(Collectors.toList()), url, "Header Parameter");
-        cc.queryParameters = _parseHeaderList(parameters.stream().filter(x -> "query".equals(x.asObject().get().getStringValue("in").orNull())).collect(Collectors.toList()), url, "Query Parameter");
-        cc.pathParameters = _parseHeaderList(parameters.stream().filter(x -> "path".equals(x.asObject().get().getStringValue("in").orNull())).collect(Collectors.toList()), url, "Path Parameter");
+
+        cc.headerParameters = new ArrayList<>();
+        cc.queryParameters = new ArrayList<>();
+        cc.pathParameters = new ArrayList<>();
+
+        if(dparameters!=null) {
+            cc.headerParameters.addAll(_parseParamList(dparameters.stream().filter(x -> "header".equals(x.asObject().get().getStringValue("in").orNull())).collect(Collectors.toList()), url, "Header Parameter"));
+            cc.queryParameters.addAll(_parseParamList(dparameters.stream().filter(x -> "query".equals(x.asObject().get().getStringValue("in").orNull())).collect(Collectors.toList()), url, "Query Parameter"));
+            cc.pathParameters.addAll(_parseParamList(dparameters.stream().filter(x -> "path".equals(x.asObject().get().getStringValue("in").orNull())).collect(Collectors.toList()), url, "Path Parameter"));
+        }
+
+        cc.headerParameters.addAll(_parseParamList(parameters.stream().filter(x -> "header".equals(x.asObject().get().getStringValue("in").orNull())).collect(Collectors.toList()), url, "Header Parameter"));
+        cc.queryParameters.addAll(_parseParamList(parameters.stream().filter(x -> "query".equals(x.asObject().get().getStringValue("in").orNull())).collect(Collectors.toList()), url, "Query Parameter"));
+        cc.pathParameters.addAll(_parseParamList(parameters.stream().filter(x -> "path".equals(x.asObject().get().getStringValue("in").orNull())).collect(Collectors.toList()), url, "Path Parameter"));
+
         NObjectElement requestBody = call.getObject("requestBody").orNull();
         if (requestBody != null && !requestBody.isEmpty()) {
             cc.requestBody = new MCall.RequestBody();

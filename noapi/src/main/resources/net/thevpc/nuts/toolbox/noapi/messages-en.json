@@ -53,6 +53,7 @@
   "request.body.example.intro": "The following is a request body example",
   "request.body.example.intro.multi": "The following are some request body examples",
   "response.body.example.intro": "The following is a response body example",
+  "response.body.example.intro.other": "The following is another response body example",
   "section.config.introduction.body": "This document details custom configuration relative to ##${name}##.",
   "section.config.body": "This section details ##${name}## configuration",
   "section.config.master.body": "This section details configuration parameters used in this document which are defined in your private configuration document.",
