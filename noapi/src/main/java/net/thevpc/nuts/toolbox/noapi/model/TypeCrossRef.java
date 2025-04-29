@@ -1,5 +1,7 @@
 package net.thevpc.nuts.toolbox.noapi.model;
 
+import java.util.Objects;
+
 public class TypeCrossRef {
     private String url;
     private String location;
@@ -36,5 +38,17 @@ public class TypeCrossRef {
     public TypeCrossRef setType(String type) {
         this.type = type;
         return this;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (o == null || getClass() != o.getClass()) return false;
+        TypeCrossRef that = (TypeCrossRef) o;
+        return Objects.equals(url, that.url) && Objects.equals(location, that.location) && Objects.equals(type, that.type);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(url, location, type);
     }
 }

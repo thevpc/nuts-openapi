@@ -387,7 +387,9 @@ public class MainMarkdownGenerator {
                         all.add(NoApiUtils.asText("."));
                     }
                 }
-                List<TypeCrossRef> types = store.typeCrossRefs().stream().filter(x -> x.getType().equals(v.getName())).collect(Collectors.toList());
+                List<TypeCrossRef> types = store.typeCrossRefs().stream().filter(x -> x.getType().equals(v.getName()))
+                        .distinct()
+                        .collect(Collectors.toList());
                 if (types.size() > 0) {
                     all.add(MdFactory.endParagraph());
                     all.add(NoApiUtils.asText(msg.get("ThisTypeIsUsedIn").get()));
