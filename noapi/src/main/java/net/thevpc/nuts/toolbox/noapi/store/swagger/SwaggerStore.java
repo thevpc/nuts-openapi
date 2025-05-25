@@ -241,7 +241,7 @@ public class SwaggerStore implements NoApiStore {
                 }
             }else if(item.asObject().isPresent()){
                 NObjectElement ee = item.asObject().get();
-                h.name = ee.name();
+                h.name = ee.name().orNull();
                 h.name = ee.getStringValue("name").orElse(h.name);
                 vobj=ee;
             }else{

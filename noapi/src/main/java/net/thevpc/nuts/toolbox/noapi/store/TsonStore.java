@@ -120,7 +120,7 @@ public class TsonStore implements NoApiStore {
                 switch (cc.type()) {
                     case NAMED_UPLET: {
                         NUpletElement u = cc.asUplet().get();
-                        if (u.name().equals("header")) {
+                        if (u.name().orElse("").equals("header")) {
                             MHeader h = new MHeader();
                             for (NElement param : u.params()) {
                                 if (param.isString() && h.name == null) {
@@ -161,7 +161,7 @@ public class TsonStore implements NoApiStore {
                 switch (cc.type()) {
                     case NAMED_UPLET: {
                         NUpletElement u = cc.asUplet().get();
-                        if (u.name().equals("securityScheme")) {
+                        if (u.name().orElse("").equals("securityScheme")) {
                             MSecurityScheme h = new MSecurityScheme();
                             all.add(h);
                             for (NElement param : u.params()) {
@@ -181,7 +181,7 @@ public class TsonStore implements NoApiStore {
                                     }
                                 } else if (param.isNamedUplet()) {
                                     NUpletElement vu = param.asUplet().get();
-                                    h.typeName = NStringUtils.trim(vu.name());
+                                    h.typeName = NStringUtils.trim(vu.name().orNull());
                                     switch (h.typeName) {
                                         case "apiKey": {
                                             h.type = MSecurityScheme.Type.apiKey;
@@ -256,7 +256,7 @@ public class TsonStore implements NoApiStore {
                     case NAMED_UPLET: {
                         NUpletElement u = cc.asUplet().get();
                         MServer h = new MServer();
-                        h.name = NStringUtils.trim(u.name());
+                        h.name = NStringUtils.trim(u.name().orNull());
                         h.variables = new ArrayList<>();
                         all.add(h);
                         for (NElement oo : u.params()) {
@@ -338,7 +338,7 @@ public class TsonStore implements NoApiStore {
                 switch (cc.type()) {
                     case NAMED_PARAMETRIZED_OBJECT: {
                         NObjectElement u = cc.toObject().get();
-                        if (u.name().equals("schema")) {
+                        if (u.name().orElse("").equals("schema")) {
                             TypeInfo h = new TypeInfo();
                             h.setType("object");
                             for (NElement param : u.params().get()) {
@@ -402,25 +402,25 @@ public class TsonStore implements NoApiStore {
                                                 b.clear();
                                                 bodyElement = NElements.of().ofObject(body1.toArray(new NElement[0]));
                                                 fieldType = b.build();
-                                                f.baseFieldTypeName = b.name();
+                                                f.baseFieldTypeName = b.name().orNull();
                                                 f.baseFieldTypeName = fieldType.toString();
                                                 break;
                                             }
                                             case NAMED_OBJECT: {
                                                 NObjectElementBuilder b = fieldType.toObject().get().builder();
-                                                f.baseFieldTypeName = b.name();
+                                                f.baseFieldTypeName = b.name().orNull();
                                                 List<NElement> body1 = b.children();
                                                 b.clear();
                                                 bodyElement = NElements.of().ofObject(body1.toArray(new NElement[0]));
-                                                fieldType = NElements.of().ofName(b.name());
-                                                f.fieldTypeName = b.name();
-                                                f.baseFieldTypeName = b.name();
+                                                fieldType = NElements.of().ofName(b.name().orNull());
+                                                f.fieldTypeName = b.name().orNull();
+                                                f.baseFieldTypeName = b.name().orNull();
                                                 break;
                                             }
                                             case NAMED_PARAMETRIZED_ARRAY:
                                             case NAMED_ARRAY: {
                                                 f.arrays++;
-                                                f.baseFieldTypeName = fieldType.toArray().get().name();
+                                                f.baseFieldTypeName = fieldType.toArray().get().name().orNull();
                                                 f.fieldTypeName = fieldType.toArray().toString();
                                                 f.arrayConstraints.add(fieldType.toArray().get().builder().clearParams().setParametrized(false).build().toString());
                                                 break;
@@ -467,7 +467,7 @@ public class TsonStore implements NoApiStore {
                                             }
                                         }
                                         if (bodyElement != null) {
-                                            for (NElement example : bodyElement.toObject().get().children().stream().filter(x -> x.isNamedUplet() && x.asUplet().get().name().equals("example")).collect(Collectors.toList())) {
+                                            for (NElement example : bodyElement.toObject().get().children().stream().filter(x -> x.isNamedUplet() && x.asUplet().get().name().orElse("").equals("example")).collect(Collectors.toList())) {
                                                 for (NElement p : example.asUplet().get().params()) {
                                                     f.examples.add(new MExample(
                                                             NStringUtils.firstNonBlank(resolveComments(p), resolveComments(example)),
@@ -480,7 +480,7 @@ public class TsonStore implements NoApiStore {
                                     }
                                     case NAMED_UPLET: {
                                         NUpletElement uplet = param.asUplet().get();
-                                        if (uplet.isNamedUplet() && uplet.name().equals("example") && uplet.params().size() > 0) {
+                                        if (uplet.isNamedUplet() && uplet.name().orElse("").equals("example") && uplet.params().size() > 0) {
                                             for (NElement p : uplet.asUplet().get().params()) {
                                                 h.examples.add(new MExample(
                                                         NStringUtils.firstNonBlank(resolveComments(p), resolveComments(uplet)),
