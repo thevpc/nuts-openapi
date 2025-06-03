@@ -1,5 +1,6 @@
 package net.thevpc.nuts.toolbox.noapi.util;
 
+import net.thevpc.nuts.elem.NElementParser;
 import net.thevpc.nuts.util.NMsg;
 import net.thevpc.nuts.util.NOptional;
 import net.thevpc.nuts.elem.NElement;
@@ -16,7 +17,7 @@ public class AppMessages {
 
     public AppMessages(AppMessages parent, URL url) {
         this.parent = parent;
-        NElement e = NElements.of().json().parse(url);
+        NElement e = NElementParser.ofJson().parse(url);
         for (NPairElement entry : e.asObject().get().pairs()) {
             values.put(entry.key().asStringValue().get(), entry.value().asStringValue().get());
         }
