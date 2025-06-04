@@ -1,5 +1,6 @@
 package net.thevpc.nuts.toolbox.noapi.util;
 
+import net.thevpc.nuts.format.NContentType;
 import net.thevpc.nuts.io.NPathExtensionType;
 import net.thevpc.nuts.io.NPathNameParts;
 import net.thevpc.nuts.text.NText;
@@ -144,7 +145,7 @@ public class NoApiUtils {
 //            if(t.isArray()) {
 //                return t.asStringValue().get();
 //            }
-            String ss = NElements.of().json().normalize(((NElement) example)).toString(false);
+            String ss = NElements.of().normalizeJson(((NElement) example)).toString(false);
             return ss;
         }
         return example.toString();

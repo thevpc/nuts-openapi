@@ -400,7 +400,7 @@ public class TsonStore implements NoApiStore {
                                                 NObjectElementBuilder b = fieldType.toObject().get().builder();
                                                 List<NElement> body1 = b.children();
                                                 b.clear();
-                                                bodyElement = NElements.ofObject(body1.toArray(new NElement[0]));
+                                                bodyElement = NElement.ofObject(body1.toArray(new NElement[0]));
                                                 fieldType = b.build();
                                                 f.baseFieldTypeName = b.name().orNull();
                                                 f.baseFieldTypeName = fieldType.toString();
@@ -411,8 +411,8 @@ public class TsonStore implements NoApiStore {
                                                 f.baseFieldTypeName = b.name().orNull();
                                                 List<NElement> body1 = b.children();
                                                 b.clear();
-                                                bodyElement = NElements.ofObject(body1.toArray(new NElement[0]));
-                                                fieldType = NElements.ofName(b.name().orNull());
+                                                bodyElement = NElement.ofObject(body1.toArray(new NElement[0]));
+                                                fieldType = NElement.ofName(b.name().orNull());
                                                 f.fieldTypeName = b.name().orNull();
                                                 f.baseFieldTypeName = b.name().orNull();
                                                 break;

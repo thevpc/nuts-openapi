@@ -111,7 +111,7 @@ public class SwaggerStore implements NoApiStore {
     }
 
     private NObjectElement _info() {
-        return apiElement.asObject().get().getObject("info").orElse(NElements.ofObject());
+        return apiElement.asObject().get().getObject("info").orElse(NElement.ofObject());
     }
 
     @Override
@@ -120,13 +120,13 @@ public class SwaggerStore implements NoApiStore {
     }
 
     public List<DocItemInfo> getMultiDocuments() {
-        NObjectElement multiDocument = apiElement.asObject().get().getObjectByPath("custom", "multi-document").orElse(NElements.ofObject());
+        NObjectElement multiDocument = apiElement.asObject().get().getObjectByPath("custom", "multi-document").orElse(NElement.ofObject());
         List<DocItemInfo> docInfos = new ArrayList<>();
         for (NPairElement entry : multiDocument.pairs()) {
             DocItemInfo d = new DocItemInfo();
             d.id = entry.key().asStringValue().get();
-            d.raw = entry.value().asObject().orElse(NElements.ofObject());
-            for (NPairElement nPairElement : d.raw.get("variables").orElse(NElements.ofObject()).asObject().get().pairs()) {
+            d.raw = entry.value().asObject().orElse(NElement.ofObject());
+            for (NPairElement nPairElement : d.raw.get("variables").orElse(NElement.ofObject()).asObject().get().pairs()) {
                 d.vars.put(String.valueOf(nPairElement.key()), String.valueOf(nPairElement.value()));
             }
             docInfos.add(d);
@@ -235,7 +235,7 @@ public class SwaggerStore implements NoApiStore {
                 if(ee.value().asObject().isPresent()){
                     vobj=ee.value().asObject().get();
                 }else if(ee.value().isNull()){
-                    vobj=NElements.ofObject();
+                    vobj= NElement.ofObject();
                 }else{
                     throw new NIllegalArgumentException(NMsg.ofC("expected pair of string:object fo parameters content"));
                 }
@@ -338,9 +338,9 @@ public class SwaggerStore implements NoApiStore {
     @Override
     public List<MServer> findServers() {
         List<MServer> all = new ArrayList<>();
-        for (NElement srv : _root().getArray("servers").orElse(NElements.ofArray())) {
+        for (NElement srv : _root().getArray("servers").orElse(NElement.ofArray())) {
             MServer r = new MServer();
-            NObjectElement srvObj = (NObjectElement) srv.asObject().orElse(NElements.ofObject());
+            NObjectElement srvObj = (NObjectElement) srv.asObject().orElse(NElement.ofObject());
 
             r.url = srvObj.getStringValue("url").orNull();
             r.description = srvObj.getStringValue("description").orNull();
@@ -371,7 +371,7 @@ public class SwaggerStore implements NoApiStore {
 
     @Override
     public List<MPath> findPaths() {
-        NObjectElement paths = _root().get("paths").orElse(NElements.ofObject()).asObject().get();
+        NObjectElement paths = _root().get("paths").orElse(NElement.ofObject()).asObject().get();
         return paths.stream().map(x -> {
             NPairElement pair = (NPairElement) x.asPair().get();
             MPath p = new MPath();
@@ -420,7 +420,7 @@ public class SwaggerStore implements NoApiStore {
                     case "delete":
                     {
                         MCall call = _fillApiPathMethod(
-                                v.value().asObject().orElse(NElements.ofObject()),
+                                v.value().asObject().orElse(NElement.ofObject()),
                                 v.key().asStringValue().get(),
                                 p.url,
                                 dparameters
