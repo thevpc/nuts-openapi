@@ -2,7 +2,6 @@ package net.thevpc.nuts.toolbox.noapi;
 
 import net.thevpc.nuts.*;
 import net.thevpc.nuts.cmdline.NCmdLine;
-import net.thevpc.nuts.cmdline.NCmdLineContext;
 import net.thevpc.nuts.cmdline.NCmdLineRunner;
 import net.thevpc.nuts.cmdline.NArg;
 import net.thevpc.nuts.io.NPath;
@@ -33,7 +32,7 @@ public class NoapiMain implements NApplication {
         ref.setCommand("pdf");
         NApp.of().runCmdLine(new NCmdLineRunner() {
             @Override
-            public boolean nextOption(NArg option, NCmdLine cmdLine, NCmdLineContext context) {
+            public boolean nextOption(NArg option, NCmdLine cmdLine) {
                 switch (option.asString().get()) {
                     case "--yaml": {
                         cmdLine.nextFlag();
@@ -61,7 +60,7 @@ public class NoapiMain implements NApplication {
                     }
                     case "--vars": {
                         NArg a = cmdLine.nextEntry().get();
-                        if (a.isActive()) {
+                        if (a.isNonCommented()) {
                             String vars = a.getStringValue().get();
                             ref.setVars(vars);
                             if (!data.isEmpty()) {
@@ -72,10 +71,10 @@ public class NoapiMain implements NApplication {
                     }
                     case "--var": {
                         NArg a = cmdLine.nextEntry().get();
-                        if (a.isActive()) {
+                        if (a.isNonCommented()) {
                             String vars = a.getStringValue().get();
                             NArg b = NArg.of(vars);
-                            if (b.isActive()) {
+                            if (b.isNonCommented()) {
                                 ref.getVarsMap().put(b.getKey().toStringLiteral(), b.getValue().toStringLiteral());
                                 if (!data.isEmpty()) {
                                     data.get(data.size() - 1).getVarsMap().put(b.getKey().toStringLiteral(), b.getValue().toStringLiteral());
@@ -102,7 +101,7 @@ public class NoapiMain implements NApplication {
                     }
                     case "--target": {
                         NArg a = cmdLine.nextEntry().get();
-                        if (a.isActive()) {
+                        if (a.isNonCommented()) {
                             String target = a.getStringValue().get();
                             if (target.contains("*")) {
                                 ref.setTarget(target);
@@ -118,7 +117,7 @@ public class NoapiMain implements NApplication {
             }
 
             @Override
-            public boolean nextNonOption(NArg nonOption, NCmdLine cmdLine, NCmdLineContext context) {
+            public boolean nextNonOption(NArg nonOption, NCmdLine cmdLine) {
                 NoapiCmdData c = new NoapiCmdData();
                 c.setCommand(ref.getCommand());
                 c.setKeep(ref.isKeep());
@@ -133,7 +132,7 @@ public class NoapiMain implements NApplication {
             }
 
             @Override
-            public void validate(NCmdLine cmdLine, NCmdLineContext context) {
+            public void validate(NCmdLine cmdLine) {
                 if (data.isEmpty()) {
                     NoapiCmdData c = new NoapiCmdData();
                     c.setCommand(ref.getCommand());
@@ -154,7 +153,7 @@ public class NoapiMain implements NApplication {
             }
 
             @Override
-            public void run(NCmdLine cmdLine, NCmdLineContext context) {
+            public void run(NCmdLine cmdLine) {
 
                 for (NoapiCmdData d : data) {
                     switch (d.getCommand()) {
