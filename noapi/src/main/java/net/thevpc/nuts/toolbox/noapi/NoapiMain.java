@@ -27,108 +27,107 @@ public class NoapiMain implements NApplication {
 
     @Override
     public void run() {
-        NSession session = NSession.get().get();
+        NSession session = NSession.of();
         this.service = new NOpenAPIService(session);
         ref.setCommand("pdf");
         NApp.of().runCmdLine(new NCmdLineRunner() {
             @Override
-            public boolean nextOption(NArg option, NCmdLine cmdLine) {
-                switch (option.asString().get()) {
-                    case "--yaml": {
-                        cmdLine.nextFlag();
-                        ref.setOpenAPIFormat("yaml");
-                        if (!data.isEmpty()) {
-                            data.get(data.size() - 1).setOpenAPIFormat("yaml");
-                        }
-                        return true;
-                    }
-                    case "--json": {
-                        cmdLine.nextFlag();
-                        ref.setOpenAPIFormat("json");
-                        if (!data.isEmpty()) {
-                            data.get(data.size() - 1).setOpenAPIFormat("json");
-                        }
-                        return true;
-                    }
-                    case "--keep": {
-                        cmdLine.nextFlag();
-                        ref.setKeep(true);
-                        if (!data.isEmpty()) {
-                            data.get(data.size() - 1).setKeep(true);
-                        }
-                        return true;
-                    }
-                    case "--vars": {
-                        NArg a = cmdLine.nextEntry().get();
-                        if (a.isNonCommented()) {
-                            String vars = a.getStringValue().get();
-                            ref.setVars(vars);
+            public boolean next(NArg arg, NCmdLine cmdLine) {
+                if(arg.isOption()){
+                    switch (arg.asString().get()) {
+                        case "--yaml": {
+                            cmdLine.nextFlag();
+                            ref.setOpenAPIFormat("yaml");
                             if (!data.isEmpty()) {
-                                data.get(data.size() - 1).setVars(vars);
+                                data.get(data.size() - 1).setOpenAPIFormat("yaml");
                             }
+                            return true;
                         }
-                        return true;
-                    }
-                    case "--var": {
-                        NArg a = cmdLine.nextEntry().get();
-                        if (a.isNonCommented()) {
-                            String vars = a.getStringValue().get();
-                            NArg b = NArg.of(vars);
-                            if (b.isNonCommented()) {
-                                ref.getVarsMap().put(b.getKey().toStringLiteral(), b.getValue().toStringLiteral());
+                        case "--json": {
+                            cmdLine.nextFlag();
+                            ref.setOpenAPIFormat("json");
+                            if (!data.isEmpty()) {
+                                data.get(data.size() - 1).setOpenAPIFormat("json");
+                            }
+                            return true;
+                        }
+                        case "--keep": {
+                            cmdLine.nextFlag();
+                            ref.setKeep(true);
+                            if (!data.isEmpty()) {
+                                data.get(data.size() - 1).setKeep(true);
+                            }
+                            return true;
+                        }
+                        case "--vars": {
+                            NArg a = cmdLine.nextEntry().get();
+                            if (a.isNonCommented()) {
+                                String vars = a.getStringValue().get();
+                                ref.setVars(vars);
                                 if (!data.isEmpty()) {
-                                    data.get(data.size() - 1).getVarsMap().put(b.getKey().toStringLiteral(), b.getValue().toStringLiteral());
+                                    data.get(data.size() - 1).setVars(vars);
                                 }
                             }
+                            return true;
                         }
-                        return true;
-                    }
-                    case "--open-api": {
-                        cmdLine.nextFlag();
-                        ref.setOpenAPI(true);
-                        if (!data.isEmpty()) {
-                            data.get(data.size() - 1).setOpenAPI(true);
-                        }
-                        return true;
-                    }
-                    case "--pdf": {
-                        cmdLine.nextFlag();
-                        ref.setCommand("pdf");
-                        if (!data.isEmpty()) {
-                            data.get(data.size() - 1).setCommand("pdf");
-                        }
-                        return true;
-                    }
-                    case "--target": {
-                        NArg a = cmdLine.nextEntry().get();
-                        if (a.isNonCommented()) {
-                            String target = a.getStringValue().get();
-                            if (target.contains("*")) {
-                                ref.setTarget(target);
+                        case "--var": {
+                            NArg a = cmdLine.nextEntry().get();
+                            if (a.isNonCommented()) {
+                                String vars = a.getStringValue().get();
+                                NArg b = NArg.of(vars);
+                                if (b.isNonCommented()) {
+                                    ref.getVarsMap().put(b.getKey().toStringLiteral(), b.getValue().toStringLiteral());
+                                    if (!data.isEmpty()) {
+                                        data.get(data.size() - 1).getVarsMap().put(b.getKey().toStringLiteral(), b.getValue().toStringLiteral());
+                                    }
+                                }
                             }
+                            return true;
+                        }
+                        case "--open-api": {
+                            cmdLine.nextFlag();
+                            ref.setOpenAPI(true);
                             if (!data.isEmpty()) {
-                                data.get(data.size() - 1).setTarget(target);
+                                data.get(data.size() - 1).setOpenAPI(true);
                             }
+                            return true;
                         }
-                        return true;
+                        case "--pdf": {
+                            cmdLine.nextFlag();
+                            ref.setCommand("pdf");
+                            if (!data.isEmpty()) {
+                                data.get(data.size() - 1).setCommand("pdf");
+                            }
+                            return true;
+                        }
+                        case "--target": {
+                            NArg a = cmdLine.nextEntry().get();
+                            if (a.isNonCommented()) {
+                                String target = a.getStringValue().get();
+                                if (target.contains("*")) {
+                                    ref.setTarget(target);
+                                }
+                                if (!data.isEmpty()) {
+                                    data.get(data.size() - 1).setTarget(target);
+                                }
+                            }
+                            return true;
+                        }
                     }
+                    return false;
+                }else{
+                    NoapiCmdData c = new NoapiCmdData();
+                    c.setCommand(ref.getCommand());
+                    c.setKeep(ref.isKeep());
+                    c.setOpenAPI(ref.isOpenAPI());
+                    c.setTarget(ref.getTarget());
+                    c.setVars(ref.getVars());
+                    c.setVarsMap(new HashMap<>(ref.getVarsMap()));
+                    NArg pathArg = cmdLine.next().get();
+                    c.setPath(pathArg.key());
+                    data.add(c);
+                    return true;
                 }
-                return false;
-            }
-
-            @Override
-            public boolean nextNonOption(NArg nonOption, NCmdLine cmdLine) {
-                NoapiCmdData c = new NoapiCmdData();
-                c.setCommand(ref.getCommand());
-                c.setKeep(ref.isKeep());
-                c.setOpenAPI(ref.isOpenAPI());
-                c.setTarget(ref.getTarget());
-                c.setVars(ref.getVars());
-                c.setVarsMap(new HashMap<>(ref.getVarsMap()));
-                NArg pathArg = cmdLine.next().get();
-                c.setPath(pathArg.key());
-                data.add(c);
-                return true;
             }
 
             @Override
