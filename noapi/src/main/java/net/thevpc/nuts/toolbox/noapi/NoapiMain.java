@@ -14,7 +14,8 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 
-public class NoapiMain implements NApplication {
+@NApp.Info
+public class NoapiMain  {
 
     private NOpenAPIService service;
     private NoapiCmdData ref = new NoapiCmdData();
@@ -25,7 +26,7 @@ public class NoapiMain implements NApplication {
         NApp.builder(args).run();
     }
 
-    @Override
+    @NApp.Main
     public void run() {
         NSession session = NSession.of();
         this.service = new NOpenAPIService(session);
