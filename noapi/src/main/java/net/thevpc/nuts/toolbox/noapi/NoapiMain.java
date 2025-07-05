@@ -14,7 +14,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 
-@NApp.Definition
+@NAppDefinition
 public class NoapiMain  {
 
     private NOpenAPIService service;
@@ -26,7 +26,7 @@ public class NoapiMain  {
         NApp.builder(args).run();
     }
 
-    @NApp.Runner
+    @NAppRunner
     public void run() {
         NSession session = NSession.of();
         this.service = new NOpenAPIService(session);
