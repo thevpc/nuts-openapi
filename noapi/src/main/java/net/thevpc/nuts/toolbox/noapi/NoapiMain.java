@@ -62,7 +62,7 @@ public class NoapiMain  {
                         }
                         case "--vars": {
                             NArg a = cmdLine.nextEntry().get();
-                            if (a.isNonCommented()) {
+                            if (a.isUncommented()) {
                                 String vars = a.getStringValue().get();
                                 ref.setVars(vars);
                                 if (!data.isEmpty()) {
@@ -73,10 +73,10 @@ public class NoapiMain  {
                         }
                         case "--var": {
                             NArg a = cmdLine.nextEntry().get();
-                            if (a.isNonCommented()) {
+                            if (a.isUncommented()) {
                                 String vars = a.getStringValue().get();
                                 NArg b = NArg.of(vars);
-                                if (b.isNonCommented()) {
+                                if (b.isUncommented()) {
                                     ref.getVarsMap().put(b.getKey().toStringLiteral(), b.getValue().toStringLiteral());
                                     if (!data.isEmpty()) {
                                         data.get(data.size() - 1).getVarsMap().put(b.getKey().toStringLiteral(), b.getValue().toStringLiteral());
@@ -103,7 +103,7 @@ public class NoapiMain  {
                         }
                         case "--target": {
                             NArg a = cmdLine.nextEntry().get();
-                            if (a.isNonCommented()) {
+                            if (a.isUncommented()) {
                                 String target = a.getStringValue().get();
                                 if (target.contains("*")) {
                                     ref.setTarget(target);
