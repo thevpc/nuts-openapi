@@ -132,7 +132,7 @@ public class NOpenAPIService {
                                     || x.getName().startsWith(sourceBaseName + "_")
                     );
                 }
-        ).redescribe(NDescribableElementSupplier.of("config files")).toList();
+        ).redescribe(NDescribables.ofDesc("config files")).toList();
     }
 
     private void generateMainDocumentFromFile(DocItemInfo docInfo, NPath targetPathObj, String filePart, String documentVersion, SupportedTargetType targetType, NPath sourcePath, NPath parentPath, NoApiStore store, String target, NPath sourceFolder, Map<String, String> vars, boolean keep) {
