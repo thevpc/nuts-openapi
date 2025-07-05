@@ -14,7 +14,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 
-@NApp.Info
+@NApp.Definition
 public class NoapiMain  {
 
     private NOpenAPIService service;
