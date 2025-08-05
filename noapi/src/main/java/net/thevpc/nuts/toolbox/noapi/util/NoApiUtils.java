@@ -1,6 +1,5 @@
 package net.thevpc.nuts.toolbox.noapi.util;
 
-import net.thevpc.nuts.format.NContentType;
 import net.thevpc.nuts.io.NPathExtensionType;
 import net.thevpc.nuts.io.NPathNameParts;
 import net.thevpc.nuts.text.NText;
@@ -226,7 +225,7 @@ public class NoApiUtils {
         return def;
     }
 
-    public static NPath addExtension(NPath sourcePath, NPath parent, NPath target, SupportedTargetType targetType, String version, NSession session) {
+    public static NPath addExtension(NPath sourcePath, NPath parent, NPath target, SupportedTargetType targetType, String version) {
         sourcePath = sourcePath.normalize().toAbsolute();
         String e = targetType.name().toLowerCase();
         if (parent == null) {
@@ -238,17 +237,18 @@ public class NoApiUtils {
                     + (NBlankable.isBlank(version) ? "" : ("-" + version))
                     + "." + smartParts.getExtension());
         }
-        return NoApiUtils.addExtension(target, e, session);
+        return NoApiUtils.addExtension(target, e);
     }
 
-    public static NPath addExtension(NPath source, String ext, NSession session) {
+    public static NPath addExtension(NPath source, String ext) {
         NPath path = source.normalize().toAbsolute();
         String n = path.getName();
         n = NPath.of(n).getNameParts(NPathExtensionType.SMART).getBaseName() + "." + ext;
         return path.getParent().resolve(n);
     }
 
-    public static void writeAdoc(MdDocument md, NPath target, boolean keep, SupportedTargetType type, NSession session) {
+    public static void writeAdoc(MdDocument md, NPath target, boolean keep, SupportedTargetType type) {
+        NSession session = NSession.of();
         boolean trace = keep && session.isPlainTrace();
         String temp = null;
         String adocFile = null;
@@ -256,7 +256,7 @@ public class NoApiUtils {
         boolean pdf = type == SupportedTargetType.PDF;
         if (pdf) {
             if (keep) {
-                temp = NoApiUtils.addExtension(target, "adoc", session).toString();
+                temp = NoApiUtils.addExtension(target, "adoc").toString();
             } else {
                 temp = NPath
                         .ofTempFile("temp.adoc").toString();
@@ -277,7 +277,7 @@ public class NoApiUtils {
             }
         }
         if (pdf) {
-            pdfFile = NoApiUtils.addExtension(target, "pdf", session).toString();
+            pdfFile = NoApiUtils.addExtension(target, "pdf").toString();
             if (new File(pdfFile).getParentFile() != null) {
                 new File(pdfFile).getParentFile().mkdirs();
             }
