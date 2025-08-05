@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class MChangeLog {
+    public String enabled;
     public String date;
     public String version;
     public String observations;
@@ -13,10 +14,11 @@ public class MChangeLog {
     public MChangeLog() {
     }
 
-    public MChangeLog(String date, String version, String title, String observations) {
+    public MChangeLog(String date, String version, String title, String observations,String enabled) {
         this.date = date;
         this.version = version;
         this.title = title;
         this.observations = observations;
+        this.enabled = enabled;
     }
 }
