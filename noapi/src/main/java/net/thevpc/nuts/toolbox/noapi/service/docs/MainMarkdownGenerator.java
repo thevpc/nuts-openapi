@@ -3,7 +3,8 @@ package net.thevpc.nuts.toolbox.noapi.service.docs;
 import net.thevpc.nuts.elem.*;
 import net.thevpc.nuts.expr.*;
 import net.thevpc.nuts.io.NPath;
-import net.thevpc.nuts.toolbox.noapi.store.NoApiStore;
+import net.thevpc.nuts.toolbox.noapi.service.MFileInfo;
+import net.thevpc.nuts.toolbox.noapi.service.MStoreAndModel;
 import net.thevpc.nuts.util.*;
 import net.thevpc.nuts.lib.md.*;
 import net.thevpc.nuts.toolbox.noapi.util.AppMessages;
@@ -32,7 +33,7 @@ public class MainMarkdownGenerator {
         }
     }
 
-    public MdDocument createMarkdown(NoApiStore store, NPath folder, Map<String, String> vars0, List<String> defaultAdocHeaders) {
+    public MdDocument createMarkdown(MFileInfo rmodel, NPath folder, List<String> defaultAdocHeaders) {
         MdDocumentBuilder doc = new MdDocumentBuilder();
 
         List<String> options = new ArrayList<>(defaultAdocHeaders);
@@ -44,31 +45,32 @@ public class MainMarkdownGenerator {
         doc.setSubTitle("RESTRICTED - INTERNAL");
 
         List<MdElement> all = new ArrayList<>();
-        Vars vars = OpenApiParser._fillVars(store, vars0);
+        rmodel.vvars = OpenApiParser._fillVars(rmodel);
 
         all.add(MdFactory.endParagraph());
-        String documentTitle = store.getTitle().orNull();
-        Templater templater = new Templater(vars.toMap());
-        doc.setTitle(templater.prepareString(documentTitle));
-        String documentVersion = store.getVersion().orNull();
-        doc.setVersion(templater.prepareString(documentVersion));
+        String documentTitle = rmodel.model.getTitle();
+        rmodel.templater = new Templater(rmodel.vvars.toMap());
 
-        all.add(MdFactory.title(1, templater.prepareString(documentTitle)));
+        doc.setTitle(rmodel.templater.prepareString(documentTitle));
+        String documentVersion = rmodel.model.getVersion();
+        doc.setVersion(rmodel.templater.prepareString(documentVersion));
+
+        all.add(MdFactory.title(1, rmodel.templater.prepareString(documentTitle)));
 //        all.add(new MdImage(null,null,"Logo, 64,64","./logo.png"));
 //        all.add(MdFactory.endParagraph());
 //        all.add(MdFactory.seq(NoApiUtils.asText("API Reference")));
-        _fillIntroduction(store, all, vars, templater);
-        _fillConfigVars(store, all, vars, templater);
-        _fillServerList(store, all, vars, templater);
-        _fillHeaders(store, all, vars, templater);
-        _fillSecuritySchemes(store, all, vars, templater);
-        _fillApiPaths(store, all, vars, templater);
-        _fillSchemaTypes(store, all);
+        _fillIntroduction(rmodel, all);
+        _fillConfigVars(rmodel, all);
+        _fillServerList(rmodel, all);
+        _fillHeaders(rmodel, all);
+        _fillSecuritySchemes(rmodel, all);
+        _fillApiPaths(rmodel, all);
+        _fillSchemaTypes(rmodel, all);
         doc.setContent(MdFactory.seq(all));
         return doc.build();
     }
 
-    private static class Templater {
+    public static class Templater {
         private Map<String, String> vars0;
         private NExprTemplate bashStyleTemplate;
         private NExprMutableDeclarations declarations;
@@ -102,10 +104,10 @@ public class MainMarkdownGenerator {
         }
     }
 
-    private void _fillConfigVars(NoApiStore store, List<MdElement> all, Vars vars2, Templater templater) {
+    private void _fillConfigVars(MFileInfo rmodel, List<MdElement> all) {
         String target = "your-company";
-        vars2.putDefault("config.target", target);
-        List<MVar> configVars = OpenApiParser.loadConfigVars(null, store, vars2);
+        rmodel.vvars.putDefault("config.target", target);
+        List<MVar> configVars = OpenApiParser.loadConfigVars(null, rmodel, rmodel.vvars);
         if (configVars.isEmpty()) {
             return;
         }
@@ -133,7 +135,7 @@ public class MainMarkdownGenerator {
                 if (!NBlankable.isBlank(example.description)) {
                     all.add(NoApiUtils.asTextTrimmed(example.description));
                 }
-                all.add(MdFactory.codeBacktick3("", vars2.formatObject(example.value), false));
+                all.add(MdFactory.codeBacktick3("", rmodel.vvars.formatObject(example.value), false));
             } else if (examples.size() > 1) {
                 all.add(NoApiUtils.asText("The following are some examples :"));
                 int eIndex = 1;
@@ -142,7 +144,7 @@ public class MainMarkdownGenerator {
                     if (!NBlankable.isBlank(example.description)) {
                         all.add(NoApiUtils.asTextTrimmed(example.description));
                     }
-                    all.add(MdFactory.codeBacktick3("", vars2.formatObject(example.value), false));
+                    all.add(MdFactory.codeBacktick3("", rmodel.vvars.formatObject(example.value), false));
                     eIndex++;
                 }
             }
@@ -150,11 +152,11 @@ public class MainMarkdownGenerator {
     }
 
 
-    private void _fillIntroduction(NoApiStore store, List<MdElement> all, Vars vars, Templater templater) {
+    private void _fillIntroduction(MFileInfo rmodel, List<MdElement> all) {
         all.add(MdFactory.endParagraph());
         all.add(MdFactory.title(2, msg.get("INTRODUCTION").get()));
         all.add(MdFactory.endParagraph());
-        all.add(NoApiUtils.asText(store.getDescription().orElse("").trim()));
+        all.add(NoApiUtils.asText(NStringUtils.firstNonNull(rmodel.model.getDescription(), "").trim()));
         all.add(MdFactory.endParagraph());
         all.add(MdFactory.title(3, msg.get("CONTACT").get()));
         all.add(NoApiUtils.asText(
@@ -162,7 +164,7 @@ public class MainMarkdownGenerator {
         ));
         all.add(MdFactory.endParagraph());
 
-        MContact contact = store.getContact().orElse(new MContact());
+        MContact contact = NOptional.of(rmodel.model.getContact()).orElseGet(MContact::new);
         all.add(MdFactory.table()
                 .addColumns(
                         MdFactory.column().setName(msg.get("NAME").get()),
@@ -191,7 +193,7 @@ public class MainMarkdownGenerator {
                         MdFactory.column().setName(msg.get("VERSION").get()),
                         MdFactory.column().setName(msg.get("DESCRIPTION").get())
                 );
-        List<MChangeLog> changeLogs = store.findChangeLogs();
+        List<MChangeLog> changeLogs = rmodel.model.getChangeLogs().stream().filter(x -> rmodel.templater.evalBoolean(x.enabled, true)).collect(Collectors.toList());
         for (MChangeLog cl : changeLogs) {
             changeLogTable.addRows(
                     MdFactory.row().addCells(
@@ -218,8 +220,8 @@ public class MainMarkdownGenerator {
         }
     }
 
-    private void _fillHeaders(NoApiStore store, List<MdElement> all, Vars vars2, Templater templater) {
-        List<MHeader> headers = store.findHeaders();
+    private void _fillHeaders(MFileInfo rmodel, List<MdElement> all) {
+        List<MHeader> headers = rmodel.model.getHeaders();
         if (!headers.isEmpty()) {
             all.add(MdFactory.endParagraph());
             all.add(MdFactory.title(3, msg.get("HEADERS").get()));
@@ -249,9 +251,9 @@ public class MainMarkdownGenerator {
         }
     }
 
-    private void _fillSecuritySchemes(NoApiStore store, List<MdElement> all, Vars vars2, Templater templater) {
+    private void _fillSecuritySchemes(MFileInfo rmodel, List<MdElement> all) {
         // NObjectElement entries
-        List<MSecurityScheme> securitySchemes = store.findSecuritySchemes();
+        List<MSecurityScheme> securitySchemes = rmodel.model.getSecuritySchemes();
         if (!securitySchemes.isEmpty()) {
             all.add(MdFactory.endParagraph());
             all.add(MdFactory.title(3, msg.get("SECURITY_AND_AUTHENTICATION").get()));
@@ -269,7 +271,7 @@ public class MainMarkdownGenerator {
                         all.add(MdFactory.endParagraph());
                         all.add(MdFactory.title(4, item.id + " (Api Key)"));
                         all.add(MdFactory.endParagraph());
-                        all.add(NoApiUtils.asText(vars2.format(item.description)));
+                        all.add(NoApiUtils.asText(rmodel.vvars.format(item.description)));
                         all.add(MdFactory.endParagraph());
                         all.add(MdFactory
                                 .table().addColumns(
@@ -279,9 +281,9 @@ public class MainMarkdownGenerator {
                                 .addRows(MdFactory.row()
                                         .addCells(
                                                 MdFactory.codeBacktick3("",
-                                                        vars2.format(item.name)),
+                                                        rmodel.vvars.format(item.name)),
                                                 MdFactory.codeBacktick3("",
-                                                        vars2.format(item.in.toUpperCase())
+                                                        rmodel.vvars.format(item.in.toUpperCase())
                                                 )
                                         ))
                                 .build()
@@ -293,7 +295,7 @@ public class MainMarkdownGenerator {
                         all.add(MdFactory.title(4, item.id + " (Http)"));
                         all.add(MdFactory.endParagraph());
                         all.add(NoApiUtils.asText(
-                                vars2.format(item.description)));
+                                rmodel.vvars.format(item.description)));
                         all.add(MdFactory
                                 .table().addColumns(
                                         MdFactory.column().setName(msg.get("SCHEME").get()),
@@ -301,8 +303,8 @@ public class MainMarkdownGenerator {
                                 )
                                 .addRows(MdFactory.row()
                                         .addCells(
-                                                NoApiUtils.asTextTrimmed(vars2.format(item.scheme)),
-                                                NoApiUtils.asTextTrimmed(vars2.format(item.bearerFormat))
+                                                NoApiUtils.asTextTrimmed(rmodel.vvars.format(item.scheme)),
+                                                NoApiUtils.asTextTrimmed(rmodel.vvars.format(item.bearerFormat))
                                         ))
                                 .build()
                         );
@@ -312,7 +314,7 @@ public class MainMarkdownGenerator {
                         all.add(MdFactory.endParagraph());
                         all.add(MdFactory.title(4, item.id + " (Oauth2)"));
                         all.add(MdFactory.endParagraph());
-                        all.add(NoApiUtils.asTextTrimmed(vars2.format(item.description)));
+                        all.add(NoApiUtils.asTextTrimmed(rmodel.vvars.format(item.description)));
 //                        all.add(MdFactory
 //                                .table().addColumns(
 //                                        MdFactory.column().setName("SCHEME"),
@@ -346,7 +348,7 @@ public class MainMarkdownGenerator {
                     default: {
                         all.add(MdFactory.endParagraph());
                         all.add(MdFactory.title(4, item.id + " (" + item.typeName + ")"));
-                        all.add(NoApiUtils.asText(vars2.formatTrimmed(item.description)));
+                        all.add(NoApiUtils.asText(rmodel.vvars.formatTrimmed(item.description)));
                     }
                 }
             }
@@ -355,8 +357,8 @@ public class MainMarkdownGenerator {
     }
 
 
-    private void _fillSchemaTypes(NoApiStore store, List<MdElement> all) {
-        Map<String, TypeInfo> allTypes = store.findTypesMap();
+    private void _fillSchemaTypes(MFileInfo rmodel, List<MdElement> all) {
+        Map<String, TypeInfo> allTypes = rmodel.model.getTypesMap();
         if (allTypes.isEmpty()) {
             return;
         }
@@ -387,7 +389,7 @@ public class MainMarkdownGenerator {
                         all.add(NoApiUtils.asText("."));
                     }
                 }
-                List<TypeCrossRef> types = store.typeCrossRefs().stream().filter(x -> x.getType().equals(v.getName()))
+                List<TypeCrossRef> types = rmodel.model.getTypeCrossRefs().stream().filter(x -> x.getType().equals(v.getName()))
                         .distinct()
                         .collect(Collectors.toList());
                 if (types.size() > 0) {
@@ -438,11 +440,11 @@ public class MainMarkdownGenerator {
     }
 
 
-    private void _fillApiPaths(NoApiStore store, List<MdElement> all, Vars vars2, Templater templater) {
+    private void _fillApiPaths(MFileInfo rmodel, List<MdElement> all) {
         all.add(MdFactory.endParagraph());
         all.add(MdFactory.title(2, msg.get("API_PATHS").get()));
-        List<MPath> paths = store.findPaths();
-        paths = paths.stream().filter(x -> templater.evalBoolean(x.enabled, true)).collect(Collectors.toList());
+        List<MPath> paths = rmodel.model.getPaths();
+        paths = paths.stream().filter(x -> rmodel.templater.evalBoolean(x.enabled, true)).collect(Collectors.toList());
         int apiSize = paths.size();
         all.add(NoApiUtils.asText(NMsg.ofV(msg.get("API_PATHS.body").get(), NMaps.of("apiSize", apiSize)).toString()));
         all.add(MdFactory.endParagraph());
@@ -454,21 +456,21 @@ public class MainMarkdownGenerator {
         all.add(NoApiUtils.asText(msg.get("API_PATHS.text").get()));
         for (MPath path : paths) {
             for (MCall call : path.calls) {
-                _fillApiPathMethod(store, call, path, all);
+                _fillApiPathMethod(rmodel, call, path, all);
             }
         }
     }
 
-    private void _fillServerList(NoApiStore store, List<MdElement> all, Vars vars2, Templater templater) {
+    private void _fillServerList(MFileInfo rmodel, List<MdElement> all) {
         all.add(MdFactory.endParagraph());
         all.add(MdFactory.title(3, "SERVER LIST"));
         all.add(NoApiUtils.asText(
                 msg.get("section.serverlist.body").get()
         ));
-        for (MServer srv : store.findServers()) {
+        for (MServer srv : rmodel.model.getServers()) {
             all.add(MdFactory.endParagraph());
-            all.add(MdFactory.title(4, vars2.formatTrimmed(srv.url)));
-            all.add(NoApiUtils.asText(vars2.formatTrimmed(srv.description)));
+            all.add(MdFactory.title(4, rmodel.vvars.formatTrimmed(srv.url)));
+            all.add(NoApiUtils.asText(rmodel.vvars.formatTrimmed(srv.description)));
             if (!srv.variables.isEmpty()) {
                 MdTableBuilder mdTableBuilder = MdFactory.table().addColumns(
                         MdFactory.column().setName("NAME"),
@@ -480,8 +482,8 @@ public class MainMarkdownGenerator {
                             MdFactory.row().addCells(
                                     NoApiUtils.asText(item.name),
                                     //                                asText(variables.getValue().asObject().getString("enum")),
-                                    NoApiUtils.asText(vars2.format(item.value)),
-                                    NoApiUtils.asText(vars2.format(item.description))
+                                    NoApiUtils.asText(rmodel.vvars.format(item.value)),
+                                    NoApiUtils.asText(rmodel.vvars.format(item.description))
                             )
                     );
                 }
@@ -542,7 +544,7 @@ public class MainMarkdownGenerator {
         return obj ? (" [" + msg.get("REQUIRED").get() + "]") : (" [" + msg.get("OPTIONAL").get() + "]");
     }
 
-    private void _fillApiPathMethod(NoApiStore store, MCall call, MPath path, List<MdElement> all) {
+    private void _fillApiPathMethod(MFileInfo rmodel, MCall call, MPath path, List<MdElement> all) {
 
         String nsummary = NStringUtils.firstNonBlank(call.summary, path.summary);
         String ndescription = NStringUtils.firstNonBlank(call.description, path.description);
@@ -733,9 +735,9 @@ public class MainMarkdownGenerator {
                 if (!examples.isEmpty()) {
                     for (int i = 0; i < examples.size(); i++) {
                         MExample example = examples.get(0);
-                        if(i==0){
+                        if (i == 0) {
                             all.add(MdFactory.text(msg.get("response.body.example.intro").get()));
-                        }else{
+                        } else {
                             all.add(MdFactory.text(msg.get("response.body.example.intro.other").get()));
                         }
                         all.add(MdFactory.text(":\n"));
