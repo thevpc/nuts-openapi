@@ -6,6 +6,7 @@ import net.thevpc.nuts.cmdline.NCmdLineRunner;
 import net.thevpc.nuts.cmdline.NArg;
 import net.thevpc.nuts.io.NPath;
 import net.thevpc.nuts.toolbox.noapi.model.NoapiCmdData;
+import net.thevpc.nuts.toolbox.noapi.model.OpenAPIFormat;
 import net.thevpc.nuts.toolbox.noapi.service.NOpenAPIService;
 import net.thevpc.nuts.util.NAssert;
 import net.thevpc.nuts.util.NMsg;
@@ -38,17 +39,25 @@ public class NoapiMain  {
                     switch (arg.asString().get()) {
                         case "--yaml": {
                             cmdLine.nextFlag();
-                            ref.setOpenAPIFormat("yaml");
+                            ref.setOpenAPIFormat(OpenAPIFormat.YAML);
                             if (!data.isEmpty()) {
-                                data.get(data.size() - 1).setOpenAPIFormat("yaml");
+                                data.get(data.size() - 1).setOpenAPIFormat(OpenAPIFormat.YAML);
                             }
                             return true;
                         }
                         case "--json": {
                             cmdLine.nextFlag();
-                            ref.setOpenAPIFormat("json");
+                            ref.setOpenAPIFormat(OpenAPIFormat.JSON);
                             if (!data.isEmpty()) {
-                                data.get(data.size() - 1).setOpenAPIFormat("json");
+                                data.get(data.size() - 1).setOpenAPIFormat(OpenAPIFormat.JSON);
+                            }
+                            return true;
+                        }
+                        case "--tson": {
+                            cmdLine.nextFlag();
+                            ref.setOpenAPIFormat(OpenAPIFormat.TSON);
+                            if (!data.isEmpty()) {
+                                data.get(data.size() - 1).setOpenAPIFormat(OpenAPIFormat.TSON);
                             }
                             return true;
                         }
