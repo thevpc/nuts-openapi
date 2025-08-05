@@ -13,10 +13,9 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 public class SwaggerStore implements NoApiStore {
-    private NElement apiElement;
-    private List<TypeCrossRef> typeCrossRefs = new ArrayList<>();
 
-    public SwaggerStore(NPath source) {
+    @Override
+    public MStoreModel loadStoreModel(NPath source) {
         boolean json = false;
 //        Path sourcePath = Paths.get(source).normalize().toAbsolutePath();
         try (BufferedReader r = new BufferedReader(new InputStreamReader(source.getInputStream()))) {
@@ -33,19 +32,35 @@ public class SwaggerStore implements NoApiStore {
         } catch (IOException ex) {
             throw new UncheckedIOException(ex);
         }
+        NElement apiElement;
         if (json) {
-            this.apiElement = NElementParser.ofJson().parse(source, NElement.class);
+            apiElement = NElementParser.ofJson().parse(source, NElement.class);
         } else {
 //            return NElementParser.ofJson().parse(inputStream, NutsElement.class);
-            this.apiElement= NElementParser.ofYaml().parse(source);
+            apiElement = NElementParser.ofYaml().parse(source);
         }
+        List<TypeCrossRef> typeCrossRefs = new ArrayList<>();
+        MStoreModel mStoreModel = new MStoreModel();
+        mStoreModel.setTitle(getTitle(apiElement).orNull());
+        mStoreModel.setVersion(getVersion(apiElement).orNull());
+        mStoreModel.setMultiDocuments(getMultiDocuments(apiElement));
+        mStoreModel.setId(getId(apiElement));
+        mStoreModel.setVariables(findVariables(apiElement));
+        mStoreModel.setConfigVariables(findConfigVariables(apiElement));
+        mStoreModel.setDescription(getDescription(apiElement).orNull());
+        mStoreModel.setConfigDescription(getConfigDescription(apiElement).orNull());
+        mStoreModel.setContact(getContact(apiElement).orNull());
+        mStoreModel.setChangeLogs(findChangeLogs(apiElement));
+        mStoreModel.setHeaders(findHeaders(apiElement, typeCrossRefs));
+        mStoreModel.setSecuritySchemes(findSecuritySchemes(apiElement));
+        mStoreModel.setServers(findServers(apiElement));
+        mStoreModel.setTypesMap(findTypesMap(apiElement));
+        mStoreModel.setPaths(findPaths(apiElement, typeCrossRefs));
+        mStoreModel.setTypeCrossRefs(typeCrossRefs);
+        return mStoreModel;
     }
 
-    public SwaggerStore(NElement apiElement) {
-        this.apiElement = apiElement;
-    }
 
-    @Override
     public MConf loadConfigFile(NPath cf) {
         NObjectElement obj = NElementParser.ofJson().parse(cf).asObject().get();
         MConf c = new MConf();
@@ -63,7 +78,7 @@ public class SwaggerStore implements NoApiStore {
         return c;
     }
 
-    @Override
+
     public Map<Object, Object> loadVars(String varsPath) {
         if (!NBlankable.isNonBlank(varsPath)) {
             if (NPath.of(varsPath).isRegularFile()) {
@@ -77,28 +92,24 @@ public class SwaggerStore implements NoApiStore {
         return new HashMap<>();
     }
 
-    @Override
-    public List<TypeCrossRef> typeCrossRefs() {
-        return typeCrossRefs;
+
+    public NOptional<String> getVersion(NElement apiElement) {
+        return _info(apiElement).getStringValue("version");
     }
 
-    public NOptional<String> getVersion() {
-        return _info().getStringValue("version");
+
+    public NOptional<String> getDescription(NElement apiElement) {
+        return _info(apiElement).getStringValue("description");
     }
 
-    @Override
-    public NOptional<String> getDescription() {
-        return _info().getStringValue("description");
+
+    public NOptional<String> getConfigDescription(NElement apiElement) {
+        return _info(apiElement).getByPath("custom", "config", "description").map(NElement::asLiteral).flatMap(NLiteral::asString);
     }
 
-    @Override
-    public NOptional<String> getConfigDescription() {
-        return _info().getByPath("custom", "config", "description").map(NElement::asLiteral).flatMap(NLiteral::asString);
-    }
 
-    @Override
-    public NOptional<MContact> getContact() {
-        NOptional<NObjectElement> c = _info().getObject("contact");
+    public NOptional<MContact> getContact(NElement apiElement) {
+        NOptional<NObjectElement> c = _info(apiElement).getObject("contact");
         if (!c.isPresent()) {
             return NOptional.ofNamedEmpty("No contact found");
         }
@@ -110,16 +121,16 @@ public class SwaggerStore implements NoApiStore {
         return NOptional.of(m);
     }
 
-    private NObjectElement _info() {
+    private NObjectElement _info(NElement apiElement) {
         return apiElement.asObject().get().getObject("info").orElse(NElement.ofObject());
     }
 
-    @Override
-    public NOptional<String> getTitle() {
-        return _info().getStringValue("title");
+
+    public NOptional<String> getTitle(NElement apiElement) {
+        return _info(apiElement).getStringValue("title");
     }
 
-    public List<DocItemInfo> getMultiDocuments() {
+    public List<DocItemInfo> getMultiDocuments(NElement apiElement) {
         NObjectElement multiDocument = apiElement.asObject().get().getObjectByPath("custom", "multi-document").orElse(NElement.ofObject());
         List<DocItemInfo> docInfos = new ArrayList<>();
         for (NPairElement entry : multiDocument.pairs()) {
@@ -134,13 +145,13 @@ public class SwaggerStore implements NoApiStore {
         return docInfos;
     }
 
-    @Override
-    public String getId() {
-        return _root().getByPath("custom", "openapi-document-id").map(NElement::asLiteral).flatMap(NLiteral::asString).get();
+
+    public String getId(NElement apiElement) {
+        return _root(apiElement).getByPath("custom", "openapi-document-id").map(NElement::asLiteral).flatMap(NLiteral::asString).get();
     }
 
-    @Override
-    public List<MVar> findConfigVariables() {
+
+    public List<MVar> findConfigVariables(NElement apiElement) {
         List<MVar> all = new ArrayList<>();
         for (NPairElement srv : apiElement.asObject().get().getObjectByPath("custom", "config", "variables").orElse(NObjectElement.ofEmpty()).pairs()) {
             String id = srv.key().asStringValue().get();
@@ -153,8 +164,8 @@ public class SwaggerStore implements NoApiStore {
         return all;
     }
 
-    @Override
-    public List<MVar> findVariables() {
+
+    public List<MVar> findVariables(NElement apiElement) {
         List<MVar> all = new ArrayList<>();
         for (NPairElement srv : apiElement.asObject().get().getObjectByPath("custom", "variables").orElse(NObjectElement.ofEmpty()).pairs()) {
             String name = srv.key().asStringValue().get();
@@ -164,16 +175,17 @@ public class SwaggerStore implements NoApiStore {
         return all;
     }
 
-    @Override
-    public List<MChangeLog> findChangeLogs() {
-        NArrayElement changeLog = _info().getArray("changes").orElse(NArrayElement.ofEmpty());
+
+    public List<MChangeLog> findChangeLogs(NElement apiElement) {
+        NArrayElement changeLog = _info(apiElement).getArray("changes").orElse(NArrayElement.ofEmpty());
         return changeLog.stream().map(x -> {
             NObjectElement o = x.asObject().get();
             MChangeLog m = new MChangeLog(
                     o.getStringValue("date").orElse(""),
                     o.getStringValue("version").orElse(""),
                     o.getStringValue("title").orElse(""),
-                    o.getStringValue("observations").orElse("")
+                    o.getStringValue("observations").orElse(""),
+                    o.getStringValue("enabled").orElse("")
             );
             for (NElement item : o.getArray("details").orElse(NArrayElement.ofEmpty())) {
                 m.details.add(item.asStringValue().get());
@@ -182,17 +194,17 @@ public class SwaggerStore implements NoApiStore {
         }).collect(Collectors.toList());
     }
 
-    @Override
-    public List<MHeader> findHeaders() {
-        NObjectElement components = _root().getObject("components").orElse(NObjectElement.ofEmpty());
-        return _parseHeaderList(components.getObject("headers").orElse(NObjectElement.ofEmpty()));
+
+    public List<MHeader> findHeaders(NElement apiElement, List<TypeCrossRef> typeCrossRefs) {
+        NObjectElement components = _root(apiElement).getObject("components").orElse(NObjectElement.ofEmpty());
+        return _parseHeaderList(components.getObject("headers").orElse(NObjectElement.ofEmpty()), typeCrossRefs);
     }
 
-    private List<MHeader> _parseHeaderList(NElement rr) {
-        return _parseHeaderList(rr.asObject().orElse(NObjectElement.ofEmpty()).stream().collect(Collectors.toList()), null, "Header");
+    private List<MHeader> _parseHeaderList(NElement rr, List<TypeCrossRef> typeCrossRefs) {
+        return _parseHeaderList(rr.asObject().orElse(NObjectElement.ofEmpty()).stream().collect(Collectors.toList()), null, "Header", typeCrossRefs);
     }
 
-    private List<MHeader> _parseHeaderList(List<NElement> rr, String url, String paramType) {
+    private List<MHeader> _parseHeaderList(List<NElement> rr, String url, String paramType, List<TypeCrossRef> typeCrossRefs) {
         List<MHeader> all = new ArrayList<>();
         for (NElement item : rr) {
             NPairElement ee = item.asPair().get();
@@ -224,27 +236,27 @@ public class SwaggerStore implements NoApiStore {
         return all;
     }
 
-    private List<MParam> _parseParamList(List<NElement> rr, String url, String paramType) {
+    private List<MParam> _parseParamList(List<NElement> rr, String url, String paramType, List<TypeCrossRef> typeCrossRefs) {
         List<MParam> all = new ArrayList<>();
         for (NElement item : rr) {
             MParam h = new MParam();
             NObjectElement vobj;
-            if(item.asPair().isPresent()){
+            if (item.asPair().isPresent()) {
                 NPairElement ee = item.asPair().get();
                 h.name = ee.key().toString();
-                if(ee.value().asObject().isPresent()){
-                    vobj=ee.value().asObject().get();
-                }else if(ee.value().isNull()){
-                    vobj= NElement.ofObject();
-                }else{
+                if (ee.value().asObject().isPresent()) {
+                    vobj = ee.value().asObject().get();
+                } else if (ee.value().isNull()) {
+                    vobj = NElement.ofObject();
+                } else {
                     throw new NIllegalArgumentException(NMsg.ofC("expected pair of string:object fo parameters content"));
                 }
-            }else if(item.asObject().isPresent()){
+            } else if (item.asObject().isPresent()) {
                 NObjectElement ee = item.asObject().get();
                 h.name = ee.name().orNull();
                 h.name = ee.getStringValue("name").orElse(h.name);
-                vobj=ee;
-            }else{
+                vobj = ee;
+            } else {
                 throw new NIllegalArgumentException(NMsg.ofC("expected pair or object fo parameters content"));
             }
             h.in = vobj.getStringValue("in").orNull();
@@ -287,13 +299,13 @@ public class SwaggerStore implements NoApiStore {
         }
     }
 
-    private NObjectElement _root() {
+    private NObjectElement _root(NElement apiElement) {
         return apiElement.asObject().get();
     }
 
-    @Override
-    public List<MSecurityScheme> findSecuritySchemes() {
-        NObjectElement components = _root().getObject("components").orElse(NObjectElement.ofEmpty());
+
+    public List<MSecurityScheme> findSecuritySchemes(NElement apiElement) {
+        NObjectElement components = _root(apiElement).getObject("components").orElse(NObjectElement.ofEmpty());
         NObjectElement securitySchemes = components.getObject("securitySchemes").orElse(NObjectElement.ofEmpty());
         List<MSecurityScheme> all = new ArrayList<>();
         for (NElement item : securitySchemes) {
@@ -335,10 +347,10 @@ public class SwaggerStore implements NoApiStore {
         return all;
     }
 
-    @Override
-    public List<MServer> findServers() {
+
+    public List<MServer> findServers(NElement apiElement) {
         List<MServer> all = new ArrayList<>();
-        for (NElement srv : _root().getArray("servers").orElse(NElement.ofArray())) {
+        for (NElement srv : _root(apiElement).getArray("servers").orElse(NElement.ofArray())) {
             MServer r = new MServer();
             NObjectElement srvObj = (NObjectElement) srv.asObject().orElse(NElement.ofObject());
 
@@ -364,14 +376,14 @@ public class SwaggerStore implements NoApiStore {
 
     }
 
-    @Override
-    public Map<String, TypeInfo> findTypesMap() {
-        return new OpenApiParser().parseTypes(_root());
+
+    public Map<String, TypeInfo> findTypesMap(NElement apiElement) {
+        return new OpenApiParser().parseTypes(_root(apiElement));
     }
 
-    @Override
-    public List<MPath> findPaths() {
-        NObjectElement paths = _root().get("paths").orElse(NElement.ofObject()).asObject().get();
+
+    public List<MPath> findPaths(NElement apiElement, List<TypeCrossRef> typeCrossRefs) {
+        NObjectElement paths = _root(apiElement).get("paths").orElse(NElement.ofObject()).asObject().get();
         return paths.stream().map(x -> {
             NPairElement pair = (NPairElement) x.asPair().get();
             MPath p = new MPath();
@@ -405,8 +417,7 @@ public class SwaggerStore implements NoApiStore {
                     case "enabled":
                     case "summary":
                     case "description":
-                    case "parameters":
-                    {
+                    case "parameters": {
                         break;
                     }
                     case "post":
@@ -417,19 +428,20 @@ public class SwaggerStore implements NoApiStore {
                     case "options":
                     case "trace":
                     case "connect":
-                    case "delete":
-                    {
+                    case "delete": {
                         MCall call = _fillApiPathMethod(
                                 v.value().asObject().orElse(NElement.ofObject()),
                                 v.key().asStringValue().get(),
                                 p.url,
-                                dparameters
+                                dparameters,
+                                apiElement,
+                                typeCrossRefs
                         );
                         p.calls.add(call);
                         break;
                     }
                     default: {
-                        throw new NIllegalArgumentException(NMsg.ofC("unsupported method '%s' in %s",v.key().asStringValue().get(),p.url));
+                        throw new NIllegalArgumentException(NMsg.ofC("unsupported method '%s' in %s", v.key().asStringValue().get(), p.url));
                     }
                 }
             }
@@ -438,9 +450,9 @@ public class SwaggerStore implements NoApiStore {
     }
 
     MCall _fillApiPathMethod(NObjectElement call, String method, String url,
-                             NArrayElement dparameters) {
-        Map<String, TypeInfo> allTypes = findTypesMap();
-        NObjectElement schemas = _root().getObjectByPath("components", "schemas").orNull();
+                             NArrayElement dparameters, NElement apiElement, List<TypeCrossRef> typeCrossRefs) {
+        Map<String, TypeInfo> allTypes = findTypesMap(apiElement);
+        NObjectElement schemas = _root(apiElement).getObjectByPath("components", "schemas").orNull();
         MCall cc = new MCall();
         cc.method = method;
         cc.summary = call.getStringValue("summary").orNull();
@@ -452,15 +464,15 @@ public class SwaggerStore implements NoApiStore {
         cc.queryParameters = new ArrayList<>();
         cc.pathParameters = new ArrayList<>();
 
-        if(dparameters!=null) {
-            cc.headerParameters.addAll(_parseParamList(dparameters.stream().filter(x -> "header".equals(x.asObject().get().getStringValue("in").orNull())).collect(Collectors.toList()), url, "Header Parameter"));
-            cc.queryParameters.addAll(_parseParamList(dparameters.stream().filter(x -> "query".equals(x.asObject().get().getStringValue("in").orNull())).collect(Collectors.toList()), url, "Query Parameter"));
-            cc.pathParameters.addAll(_parseParamList(dparameters.stream().filter(x -> "path".equals(x.asObject().get().getStringValue("in").orNull())).collect(Collectors.toList()), url, "Path Parameter"));
+        if (dparameters != null) {
+            cc.headerParameters.addAll(_parseParamList(dparameters.stream().filter(x -> "header".equals(x.asObject().get().getStringValue("in").orNull())).collect(Collectors.toList()), url, "Header Parameter", typeCrossRefs));
+            cc.queryParameters.addAll(_parseParamList(dparameters.stream().filter(x -> "query".equals(x.asObject().get().getStringValue("in").orNull())).collect(Collectors.toList()), url, "Query Parameter", typeCrossRefs));
+            cc.pathParameters.addAll(_parseParamList(dparameters.stream().filter(x -> "path".equals(x.asObject().get().getStringValue("in").orNull())).collect(Collectors.toList()), url, "Path Parameter", typeCrossRefs));
         }
 
-        cc.headerParameters.addAll(_parseParamList(parameters.stream().filter(x -> "header".equals(x.asObject().get().getStringValue("in").orNull())).collect(Collectors.toList()), url, "Header Parameter"));
-        cc.queryParameters.addAll(_parseParamList(parameters.stream().filter(x -> "query".equals(x.asObject().get().getStringValue("in").orNull())).collect(Collectors.toList()), url, "Query Parameter"));
-        cc.pathParameters.addAll(_parseParamList(parameters.stream().filter(x -> "path".equals(x.asObject().get().getStringValue("in").orNull())).collect(Collectors.toList()), url, "Path Parameter"));
+        cc.headerParameters.addAll(_parseParamList(parameters.stream().filter(x -> "header".equals(x.asObject().get().getStringValue("in").orNull())).collect(Collectors.toList()), url, "Header Parameter", typeCrossRefs));
+        cc.queryParameters.addAll(_parseParamList(parameters.stream().filter(x -> "query".equals(x.asObject().get().getStringValue("in").orNull())).collect(Collectors.toList()), url, "Query Parameter", typeCrossRefs));
+        cc.pathParameters.addAll(_parseParamList(parameters.stream().filter(x -> "path".equals(x.asObject().get().getStringValue("in").orNull())).collect(Collectors.toList()), url, "Path Parameter", typeCrossRefs));
 
         NObjectElement requestBody = call.getObject("requestBody").orNull();
         if (requestBody != null && !requestBody.isEmpty()) {
@@ -488,16 +500,16 @@ public class SwaggerStore implements NoApiStore {
                         description = s.asObject().get().getStringValue("description").orNull();
                     }
                 }
-                if(example!=null) {
-                    vv.examples.add(new MExample(null,example));
+                if (example != null) {
+                    vv.examples.add(new MExample(null, example));
                 }
                 vv.description = description;
             }
         }
         cc.responses = new ArrayList<>();
         NObjectElement responses = call.getObject("responses").orNull();
-        if(responses==null){
-            throw new NIllegalArgumentException(NMsg.ofC("Missing 'responses' element in %s",call));
+        if (responses == null) {
+            throw new NIllegalArgumentException(NMsg.ofC("Missing 'responses' element in %s", call));
         }
         responses.stream()
                 .forEach(item -> {
