@@ -4,21 +4,19 @@ import net.thevpc.nuts.*;
 import net.thevpc.nuts.io.NPath;
 import net.thevpc.nuts.toolbox.noapi.model.MConf;
 import net.thevpc.nuts.toolbox.noapi.model.MContact;
-import net.thevpc.nuts.toolbox.noapi.store.NoApiStore;
-import net.thevpc.nuts.util.NMaps;
+import net.thevpc.nuts.toolbox.noapi.service.MFileInfo;
+import net.thevpc.nuts.toolbox.noapi.service.MStoreAndModel;
+import net.thevpc.nuts.util.*;
 import net.thevpc.nuts.lib.md.*;
 import net.thevpc.nuts.toolbox.noapi.util.AppMessages;
 import net.thevpc.nuts.toolbox.noapi.util.NoApiUtils;
 import net.thevpc.nuts.toolbox.noapi.store.swagger.OpenApiParser;
 import net.thevpc.nuts.toolbox.noapi.model.MVar;
 import net.thevpc.nuts.toolbox.noapi.model.Vars;
-import net.thevpc.nuts.util.NBlankable;
-import net.thevpc.nuts.util.NMsg;
 
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 
 public class ConfigMarkdownGenerator {
@@ -33,13 +31,12 @@ public class ConfigMarkdownGenerator {
     }
 
     public MdDocument createMarkdown(
-            MConf confFile,
-            NoApiStore store,
+            MFileInfo mFileInfo, MConf confFile,
             NPath targetFolder,
-            NPath sourceFolder, String apiDocumentFileName,
-            Map<String, String> vars0, List<String> defaultAdocHeaders) {
-        String apiDocumentTitle = store.getTitle().orNull();
-        String apiDocumentVersion = store.getVersion().orNull();
+            String apiDocumentFileName,
+            List<String> defaultAdocHeaders) {
+        String apiDocumentTitle = mFileInfo.rmodel.model.getTitle();
+        String apiDocumentVersion = mFileInfo.rmodel.model.getVersion();
         String configDocumentVersion = confFile.version;
         if (NBlankable.isBlank(configDocumentVersion)) {
             configDocumentVersion = apiDocumentVersion;
@@ -48,15 +45,15 @@ public class ConfigMarkdownGenerator {
         String targetName = confFile.targetName;
         String targetId = confFile.targetId;
         String apiDocumentIdFromConfig = confFile.documentId;
-        String apiDocumentIdFromApi = store.getId();
+        String apiDocumentIdFromApi = mFileInfo.rmodel.model.getId();
         if (!NBlankable.isBlank(apiDocumentIdFromConfig)) {
             if (!Objects.equals(apiDocumentIdFromConfig, apiDocumentIdFromApi)) {
                 throw new NIllegalArgumentException(NMsg.ofC("invalid api version %s <> %s", apiDocumentIdFromConfig, apiDocumentIdFromApi));
             }
         }
         List<String> options = new ArrayList<>(defaultAdocHeaders);
-        if (sourceFolder.resolve("logo.png").exists()) {
-            options.add(":title-logo-image: " + sourceFolder.resolve("logo.png").normalize().toAbsolute().toString());
+        if (mFileInfo.rmodel.sourceFolder.resolve("logo.png").exists()) {
+            options.add(":title-logo-image: " + mFileInfo.rmodel.sourceFolder.resolve("logo.png").normalize().toAbsolute().toString());
         }
         doc.setProperty("headers", options.toArray(new String[0]));
         doc.setDate(LocalDate.now());
@@ -73,21 +70,21 @@ public class ConfigMarkdownGenerator {
 //        all.add(MdFactory.endParagraph());
 //        all.add(MdFactory.seq(NoApiUtils.asText("API Reference")));
 
-        Vars vars = OpenApiParser._fillVars(store, vars0);
+        Vars vars = OpenApiParser._fillVars(mFileInfo);
 
-        List<MVar> configVars = OpenApiParser.loadConfigVars(confFile, store, vars);
-        _fillIntroduction(confFile, store, all, vars, apiDocumentFileName);
+        List<MVar> configVars = OpenApiParser.loadConfigVars(confFile, mFileInfo, vars);
+        _fillIntroduction(confFile, mFileInfo, all, apiDocumentFileName);
         _fillConfigVars(confFile, all, vars, configVars);
         doc.setContent(MdFactory.seq(all));
         return doc.build();
     }
 
-    private void _fillIntroduction(MConf confFile, NoApiStore store,
-                                   List<MdElement> all, Vars vars, String apiDocumentFileName) {
+    private void _fillIntroduction(MConf confFile, MFileInfo mFileInfo,
+                                   List<MdElement> all, String apiDocumentFileName) {
         all.add(MdFactory.endParagraph());
         all.add(MdFactory.title(2, msg.get("INTRODUCTION").get()));
         all.add(MdFactory.endParagraph());
-        all.add(NoApiUtils.asText(store.getConfigDescription().orElse("").trim()));
+        all.add(NoApiUtils.asText(NStringUtils.firstNonNull(mFileInfo.rmodel.model.getConfigDescription(), "").trim()));
         all.add(MdFactory.endParagraph());
         String targetName = confFile.targetName;
         all.add(NoApiUtils.asText(
@@ -100,7 +97,7 @@ public class ConfigMarkdownGenerator {
                 msg.get("section.contact.body").get()
         ));
         all.add(MdFactory.endParagraph());
-        MContact contact = store.getContact().orElse(new MContact());
+        MContact contact = NOptional.of(mFileInfo.rmodel.model.getContact()).orElseGet(MContact::new);
         all.add(MdFactory.table()
                 .addColumns(
                         MdFactory.column().setName(msg.get("NAME").get()),
@@ -121,8 +118,8 @@ public class ConfigMarkdownGenerator {
                 msg.get("section.reference-document.body").get()
         ));
 
-        String apiDocumentTitle = store.getTitle().orElse("");
-        String apiDocumentVersion = store.getVersion().orElse("");
+        String apiDocumentTitle = NStringUtils.firstNonNull(mFileInfo.rmodel.model.getTitle(), "");
+        String apiDocumentVersion = NStringUtils.firstNonNull(mFileInfo.rmodel.model.getVersion(), "");
 
         all.add(MdFactory.endParagraph());
         all.add(MdFactory.table()
