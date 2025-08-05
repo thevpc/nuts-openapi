@@ -2,6 +2,8 @@ package net.thevpc.nuts.toolbox.noapi.store.swagger;
 
 import net.thevpc.nuts.elem.*;
 import net.thevpc.nuts.toolbox.noapi.model.*;
+import net.thevpc.nuts.toolbox.noapi.service.MFileInfo;
+import net.thevpc.nuts.toolbox.noapi.service.MStoreAndModel;
 import net.thevpc.nuts.toolbox.noapi.store.NoApiStore;
 import net.thevpc.nuts.util.NBlankable;
 import net.thevpc.nuts.util.NLiteral;
@@ -10,22 +12,41 @@ import java.util.*;
 
 public class OpenApiParser {
 
-    public static Vars _fillVars(NoApiStore apiElement, Map<String, String> vars) {
+    public static Vars _fillVars(MStoreAndModel rmodel,Map<String, String> vars) {
         Map<String, String> all = new LinkedHashMap<>();
 
-        for (MVar c : apiElement.findVariables()) {
+        for (MVar c : rmodel.model.getVariables()) {
             all.put(c.getId(), c.getValue());
         }
 
+        if (rmodel.vars != null) {
+            all.putAll(rmodel.vars);
+        }
         if (vars != null) {
             all.putAll(vars);
         }
         return new Vars(all);
     }
 
-    public static List<MVar> loadConfigVars(MConf confFile, NoApiStore apiElements, Vars vars2) {
+    public static Vars _fillVars(MFileInfo rmodel) {
+        Map<String, String> all = new LinkedHashMap<>();
+
+        for (MVar c : rmodel.model.getVariables()) {
+            all.put(c.getId(), c.getValue());
+        }
+
+        if (rmodel.vars != null) {
+            all.putAll(rmodel.vars);
+        }
+        if (rmodel.vars2 != null) {
+            all.putAll(rmodel.vars2);
+        }
+        return new Vars(all);
+    }
+
+    public static List<MVar> loadConfigVars(MConf confFile, MFileInfo mFileInfo, Vars vars2) {
         LinkedHashMap<String, MVar> all = new LinkedHashMap<>();
-        for (MVar c : apiElements.findConfigVariables()) {
+        for (MVar c : mFileInfo.rmodel.model.getConfigVariables()) {
             all.put(c.getId(),
                     new MVar(
                             c.getId(),
