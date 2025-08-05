@@ -13,7 +13,7 @@ public class NoapiCmdData {
     private String target;
     private boolean openAPI;
     private boolean keep;
-    private String openAPIFormat;
+    private OpenAPIFormat openAPIFormat;
 
     public String getCommand() {
         return command;
@@ -78,11 +78,11 @@ public class NoapiCmdData {
         return this;
     }
 
-    public String getOpenAPIFormat() {
+    public OpenAPIFormat getOpenAPIFormat() {
         return openAPIFormat;
     }
 
-    public NoapiCmdData setOpenAPIFormat(String openAPIFormat) {
+    public NoapiCmdData setOpenAPIFormat(OpenAPIFormat openAPIFormat) {
         this.openAPIFormat = openAPIFormat;
         return this;
     }
