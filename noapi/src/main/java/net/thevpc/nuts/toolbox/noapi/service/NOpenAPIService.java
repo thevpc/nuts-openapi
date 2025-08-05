@@ -11,9 +11,8 @@ import net.thevpc.nuts.toolbox.noapi.model.MConf;
 import net.thevpc.nuts.toolbox.noapi.service.docs.ConfigMarkdownGenerator;
 import net.thevpc.nuts.toolbox.noapi.service.docs.MainMarkdownGenerator;
 import net.thevpc.nuts.toolbox.noapi.model.SupportedTargetType;
-import net.thevpc.nuts.toolbox.noapi.store.NoApiStore;
 import net.thevpc.nuts.toolbox.noapi.store.swagger.SwaggerStore;
-import net.thevpc.nuts.toolbox.noapi.store.TsonStore;
+import net.thevpc.nuts.toolbox.noapi.store.ncigar.TsonStore;
 import net.thevpc.nuts.toolbox.noapi.util.AppMessages;
 import net.thevpc.nuts.toolbox.noapi.util.NoApiUtils;
 import net.thevpc.nuts.util.NBlankable;
@@ -69,54 +68,58 @@ public class NOpenAPIService {
             session.out().println(NMsg.ofC("read open-api file %s", sourcePath));
         }
         String sourceBaseName = sourcePath.getNameParts(NPathExtensionType.SMART).getBaseName();
-        NoApiStore store;
+        MStoreAndModel rmodel=new MStoreAndModel();
         if(sourcePath.getName().endsWith(".tson")) {
-            store = new TsonStore(sourcePath);
+            rmodel.store = new TsonStore();
         }else if(sourcePath.getName().endsWith(".json") || sourcePath.getName().endsWith(".yaml")) {
-            store=new SwaggerStore(sourcePath);
+            rmodel.store=new SwaggerStore();
         }else{
             throw new IllegalArgumentException("Unsupported file type: " + sourcePath);
         }
-        Map<String, String> vars = new HashMap<>();
+        rmodel.model=rmodel.store.loadStoreModel(sourcePath);
+        rmodel.keep=keep;
+        rmodel.sourcePath=sourcePath;
+        rmodel.target=target;
 
         if (!NBlankable.isBlank(varsPath)) {
-            Map<Object, Object> m=store.loadVars(varsPath);
+            Map<Object, Object> m=rmodel.store.loadVars(varsPath);
             for (Map.Entry<Object, Object> o : m.entrySet()) {
-                vars.put(String.valueOf(o.getKey()), String.valueOf(o.getValue()));
+                rmodel.vars.put(String.valueOf(o.getKey()), String.valueOf(o.getValue()));
             }
         }
         if (varsMap != null) {
-            vars.putAll(varsMap);
+            rmodel.vars.putAll(varsMap);
         }
 
-        List<DocItemInfo> docInfos = store.getMultiDocuments();
+        List<DocItemInfo> docInfos = rmodel.model.getMultiDocuments();
         if (docInfos.isEmpty()) {
             docInfos.add(new DocItemInfo());
         }
-        String documentVersion = store.getVersion().orNull();
+        String documentVersion = rmodel.model.getVersion();
 
 //        Path path = Paths.get("/data/from-git/RapiPdf/docs/specs/maghrebia-api-1.1.2.yml");
-        SupportedTargetType targetType = NoApiUtils.resolveTarget(target, SupportedTargetType.PDF);
-        NPath sourceFolder = sourcePath.getParent();
-        NPath parentPath = sourceFolder.resolve("dist-version-" + documentVersion);
-        NPath targetPathObj = NoApiUtils.addExtension(sourcePath, parentPath, NPath.of(target), targetType, documentVersion, session);
+        rmodel.targetType = NoApiUtils.resolveTarget(target, SupportedTargetType.PDF);
+        rmodel.sourceFolder = rmodel.sourcePath.getParent();
+        rmodel.parentPath = rmodel.sourceFolder.resolve("dist-version-" + documentVersion);
+        NPath targetPathObj = NoApiUtils.addExtension(sourcePath, rmodel.parentPath, NPath.of(target), rmodel.targetType, documentVersion);
 
         //start copying json file
-        NPath openApiFileCopy = targetPathObj.resolveSibling(targetPathObj.getNameParts(NPathExtensionType.SMART).getBaseName() + "." + sourcePath.getNameParts(NPathExtensionType.SHORT).getExtension());
-        sourcePath.copyTo(openApiFileCopy);
+        NPath openApiFileCopy = targetPathObj.resolveSibling(targetPathObj.getNameParts(NPathExtensionType.SMART).getBaseName() + "." + rmodel.sourcePath.getNameParts(NPathExtensionType.SHORT).getExtension());
+        rmodel.sourcePath.copyTo(openApiFileCopy);
         if (session.isPlainTrace()) {
             session.out().println(NMsg.ofC("copy open-api file %s", openApiFileCopy));
         }
-        List<NPath> allConfigFiles = searchConfigPaths(sourceFolder, sourceBaseName);
+        List<NPath> allConfigFiles = searchConfigPaths(rmodel.sourceFolder, sourceBaseName);
         for (DocItemInfo docInfo : docInfos) {
             String filePart = "";
             if (docInfo.id != null) {
                 filePart = "-" + docInfo.id;
             }
+            MFileInfo mFileInfo = new MFileInfo(rmodel, filePart, docInfo);
             for (NPath cf : allConfigFiles) {
-                generateConfigDocumentFromFile(cf, targetPathObj, filePart, documentVersion, targetType, sourcePath, parentPath, store, target, sourceFolder, vars, keep);
+                generateConfigDocumentFromFile(mFileInfo, cf, targetPathObj);
             }
-            generateMainDocumentFromFile(docInfo, targetPathObj, filePart, documentVersion, targetType, sourcePath, parentPath, store, target, sourceFolder, vars, keep);
+            generateMainDocumentFromFile(mFileInfo, targetPathObj, mFileInfo.rmodel.sourceFolder);
 
         }
     }
@@ -135,38 +138,38 @@ public class NOpenAPIService {
         ).redescribe(NDescribables.ofDesc("config files")).toList();
     }
 
-    private void generateMainDocumentFromFile(DocItemInfo docInfo, NPath targetPathObj, String filePart, String documentVersion, SupportedTargetType targetType, NPath sourcePath, NPath parentPath, NoApiStore store, String target, NPath sourceFolder, Map<String, String> vars, boolean keep) {
+    private void generateMainDocumentFromFile(MFileInfo mFileInfo, NPath targetPathObj, NPath sourceFolder) {
         MainMarkdownGenerator mg = new MainMarkdownGenerator(msg);
-        Map<String, String> vars2 = new HashMap<>(vars);
-        vars2.putAll(docInfo.vars);
-        MdDocument md = mg.createMarkdown(store, sourceFolder, vars2, defaultAdocHeaders);
-        NoApiUtils.writeAdoc(md, targetPathObj.resolveSibling(targetPathObj.getNameParts(NPathExtensionType.SMART).toName("${base}" + filePart + "${fullExtension}")), keep, targetType, session);
+        MdDocument md = mg.createMarkdown(mFileInfo, sourceFolder, defaultAdocHeaders);
+        NoApiUtils.writeAdoc(md, targetPathObj.resolveSibling(targetPathObj.getNameParts(NPathExtensionType.SMART).toName("${base}" + mFileInfo.filePart + "${fullExtension}")),
+                mFileInfo.rmodel.keep,
+                mFileInfo.rmodel.targetType);
     }
 
-    private void generateConfigDocumentFromFile(NPath cf, NPath targetPathObj, String filePart, String documentVersion, SupportedTargetType targetType, NPath sourcePath, NPath parentPath, NoApiStore store, String target, NPath sourceFolder, Map<String, String> vars, boolean keep) {
-        MConf confFile=store.loadConfigFile(cf);
+    private void generateConfigDocumentFromFile(MFileInfo mFileInfo, NPath cf, NPath targetPathObj) {
+        MConf confFile=mFileInfo.rmodel.store.loadConfigFile(cf);
         //remove version, will be added later
         NPathNameParts smartParts = cf.getNameParts(NPathExtensionType.SMART);
-        NPath configFileCopy = targetPathObj.resolveSibling(smartParts.getBaseName() + filePart + "-" + documentVersion + "." + smartParts.getExtension());
+        NPath configFileCopy = targetPathObj.resolveSibling(smartParts.getBaseName() + mFileInfo.filePart + "-" + mFileInfo.rmodel.model.getVersion() + "." + smartParts.getExtension());
         cf.copyTo(configFileCopy);
         if (session.isPlainTrace()) {
             session.out().println(NMsg.ofC("copy  config  file %s", configFileCopy));
         }
-        NPath targetPathObj2 = NoApiUtils.addExtension(sourcePath, parentPath, NPath.of(target), targetType, "", session);
-        generateConfigDocument(confFile, store, parentPath, sourceFolder, targetPathObj2.getNameParts(NPathExtensionType.SMART).getBaseName(), targetPathObj.getName(), targetType, keep, vars);
+        NPath targetPathObj2 = NoApiUtils.addExtension(mFileInfo.rmodel.sourcePath, mFileInfo.rmodel.parentPath, NPath.of(mFileInfo.rmodel.target), mFileInfo.rmodel.targetType, "");
+        generateConfigDocument(mFileInfo, confFile, targetPathObj2.getNameParts(NPathExtensionType.SMART).getBaseName(), targetPathObj.getName());
     }
 
-    private void generateConfigDocument(MConf configElements, NoApiStore apiElement, NPath parentPath, NPath sourceFolder, String baseName, String apiFileName, SupportedTargetType targetType, boolean keep, Map<String, String> vars) {
+    private void generateConfigDocument(MFileInfo mFileInfo, MConf configElements, String baseName, String apiFileName) {
         if (NBlankable.isBlank(configElements.targetId)) {
             configElements.targetId = configElements.targetName;
         }
-        vars.put("config.target", configElements.targetName);
-        String documentVersion = apiElement.getVersion().orNull();
+        mFileInfo.rmodel.vars.put("config.target", configElements.targetName);
+        String documentVersion = mFileInfo.rmodel.model.getVersion();
 
-        NPath newFile = parentPath.resolve(baseName + "-" + NoApiUtils.toValidFileName(configElements.targetId) + "-" + documentVersion + ".pdf");
+        NPath newFile = mFileInfo.rmodel.parentPath.resolve(baseName + "-" + NoApiUtils.toValidFileName(configElements.targetId) + "-" + documentVersion + ".pdf");
         ConfigMarkdownGenerator mg = new ConfigMarkdownGenerator(session, msg);
-        MdDocument md = mg.createMarkdown(configElements, apiElement, newFile.getParent(), sourceFolder, apiFileName, vars, defaultAdocHeaders);
-        NoApiUtils.writeAdoc(md, newFile, keep, targetType, session);
+        MdDocument md = mg.createMarkdown(mFileInfo, configElements, newFile.getParent(), apiFileName, defaultAdocHeaders);
+        NoApiUtils.writeAdoc(md, newFile, mFileInfo.rmodel.keep, mFileInfo.rmodel.targetType);
     }
 
 }
