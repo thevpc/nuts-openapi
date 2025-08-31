@@ -67,7 +67,7 @@ public class NOpenAPIService {
         if (session.isPlainTrace()) {
             session.out().println(NMsg.ofC("read open-api file %s", sourcePath));
         }
-        String sourceBaseName = sourcePath.getNameParts(NPathExtensionType.SMART).getBaseName();
+        String sourceBaseName = sourcePath.nameParts(NPathExtensionType.SMART).getBaseName();
         MStoreAndModel rmodel=new MStoreAndModel();
         if(sourcePath.getName().endsWith(".tson")) {
             rmodel.store = new TsonStore();
@@ -104,7 +104,7 @@ public class NOpenAPIService {
         NPath targetPathObj = NoApiUtils.addExtension(sourcePath, rmodel.parentPath, NPath.of(target), rmodel.targetType, documentVersion);
 
         //start copying json file
-        NPath openApiFileCopy = targetPathObj.resolveSibling(targetPathObj.getNameParts(NPathExtensionType.SMART).getBaseName() + "." + rmodel.sourcePath.getNameParts(NPathExtensionType.SHORT).getExtension());
+        NPath openApiFileCopy = targetPathObj.resolveSibling(targetPathObj.nameParts(NPathExtensionType.SMART).getBaseName() + "." + rmodel.sourcePath.nameParts(NPathExtensionType.SHORT).getExtension());
         rmodel.sourcePath.copyTo(openApiFileCopy);
         if (session.isPlainTrace()) {
             session.out().println(NMsg.ofC("copy open-api file %s", openApiFileCopy));
@@ -141,7 +141,7 @@ public class NOpenAPIService {
     private void generateMainDocumentFromFile(MFileInfo mFileInfo, NPath targetPathObj, NPath sourceFolder) {
         MainMarkdownGenerator mg = new MainMarkdownGenerator(msg);
         MdDocument md = mg.createMarkdown(mFileInfo, sourceFolder, defaultAdocHeaders);
-        NoApiUtils.writeAdoc(md, targetPathObj.resolveSibling(targetPathObj.getNameParts(NPathExtensionType.SMART).toName("${base}" + mFileInfo.filePart + "${fullExtension}")),
+        NoApiUtils.writeAdoc(md, targetPathObj.resolveSibling(targetPathObj.nameParts(NPathExtensionType.SMART).toName("${base}" + mFileInfo.filePart + "${fullExtension}")),
                 mFileInfo.rmodel.keep,
                 mFileInfo.rmodel.targetType);
     }
@@ -149,14 +149,14 @@ public class NOpenAPIService {
     private void generateConfigDocumentFromFile(MFileInfo mFileInfo, NPath cf, NPath targetPathObj) {
         MConf confFile=mFileInfo.rmodel.store.loadConfigFile(cf);
         //remove version, will be added later
-        NPathNameParts smartParts = cf.getNameParts(NPathExtensionType.SMART);
+        NPathNameParts smartParts = cf.nameParts(NPathExtensionType.SMART);
         NPath configFileCopy = targetPathObj.resolveSibling(smartParts.getBaseName() + mFileInfo.filePart + "-" + mFileInfo.rmodel.model.getVersion() + "." + smartParts.getExtension());
         cf.copyTo(configFileCopy);
         if (session.isPlainTrace()) {
             session.out().println(NMsg.ofC("copy  config  file %s", configFileCopy));
         }
         NPath targetPathObj2 = NoApiUtils.addExtension(mFileInfo.rmodel.sourcePath, mFileInfo.rmodel.parentPath, NPath.of(mFileInfo.rmodel.target), mFileInfo.rmodel.targetType, "");
-        generateConfigDocument(mFileInfo, confFile, targetPathObj2.getNameParts(NPathExtensionType.SMART).getBaseName(), targetPathObj.getName());
+        generateConfigDocument(mFileInfo, confFile, targetPathObj2.nameParts(NPathExtensionType.SMART).getBaseName(), targetPathObj.getName());
     }
 
     private void generateConfigDocument(MFileInfo mFileInfo, MConf configElements, String baseName, String apiFileName) {
