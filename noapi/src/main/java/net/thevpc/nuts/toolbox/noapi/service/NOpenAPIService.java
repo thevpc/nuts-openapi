@@ -1,6 +1,6 @@
 package net.thevpc.nuts.toolbox.noapi.service;
 
-import net.thevpc.nuts.*;
+import net.thevpc.nuts.core.NSession;
 import net.thevpc.nuts.elem.*;
 import net.thevpc.nuts.io.NPathExtensionType;
 import net.thevpc.nuts.io.NPathNameParts;
@@ -17,6 +17,7 @@ import net.thevpc.nuts.toolbox.noapi.util.AppMessages;
 import net.thevpc.nuts.toolbox.noapi.util.NoApiUtils;
 import net.thevpc.nuts.util.NBlankable;
 import net.thevpc.nuts.util.NMsg;
+import net.thevpc.nuts.util.NNoSuchElementException;
 
 import java.util.*;
 import java.util.stream.Collectors;
