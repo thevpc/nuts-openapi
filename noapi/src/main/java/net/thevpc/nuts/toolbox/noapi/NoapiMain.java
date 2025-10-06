@@ -1,14 +1,18 @@
 package net.thevpc.nuts.toolbox.noapi;
 
-import net.thevpc.nuts.*;
+import net.thevpc.nuts.app.NApp;
+import net.thevpc.nuts.app.NAppDefinition;
+import net.thevpc.nuts.app.NAppRunner;
 import net.thevpc.nuts.cmdline.NCmdLine;
 import net.thevpc.nuts.cmdline.NCmdLineRunner;
 import net.thevpc.nuts.cmdline.NArg;
+import net.thevpc.nuts.core.NSession;
 import net.thevpc.nuts.io.NPath;
 import net.thevpc.nuts.toolbox.noapi.model.NoapiCmdData;
 import net.thevpc.nuts.toolbox.noapi.model.OpenAPIFormat;
 import net.thevpc.nuts.toolbox.noapi.service.NOpenAPIService;
 import net.thevpc.nuts.util.NAssert;
+import net.thevpc.nuts.util.NIllegalArgumentException;
 import net.thevpc.nuts.util.NMsg;
 
 import java.util.ArrayList;
