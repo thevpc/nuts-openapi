@@ -16,7 +16,7 @@ import net.thevpc.nuts.toolbox.noapi.store.ncigar.TsonStore;
 import net.thevpc.nuts.toolbox.noapi.util.AppMessages;
 import net.thevpc.nuts.toolbox.noapi.util.NoApiUtils;
 import net.thevpc.nuts.util.NBlankable;
-import net.thevpc.nuts.util.NMsg;
+import net.thevpc.nuts.text.NMsg;
 import net.thevpc.nuts.util.NNoSuchElementException;
 
 import java.util.*;
