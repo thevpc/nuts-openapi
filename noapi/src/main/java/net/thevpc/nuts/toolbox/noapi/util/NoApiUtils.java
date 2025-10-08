@@ -4,7 +4,7 @@ import net.thevpc.nuts.io.NPathExtensionType;
 import net.thevpc.nuts.io.NPathNameParts;
 import net.thevpc.nuts.text.NText;
 import net.thevpc.nuts.util.NBlankable;
-import net.thevpc.nuts.util.NMsg;
+import net.thevpc.nuts.text.NMsg;
 import net.thevpc.nuts.core.NSession;
 import net.thevpc.nuts.elem.*;
 import net.thevpc.nuts.io.NPath;
