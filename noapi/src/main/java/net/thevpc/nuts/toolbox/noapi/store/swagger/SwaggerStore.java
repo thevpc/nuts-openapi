@@ -1,5 +1,6 @@
 package net.thevpc.nuts.toolbox.noapi.store.swagger;
 
+import net.thevpc.nuts.text.NMsg;
 import net.thevpc.nuts.util.NIllegalArgumentException;
 import net.thevpc.nuts.elem.*;
 import net.thevpc.nuts.io.NPath;
