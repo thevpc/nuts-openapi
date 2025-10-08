@@ -1,11 +1,10 @@
 package net.thevpc.nuts.toolbox.noapi.util;
 
 import net.thevpc.nuts.elem.NElementParser;
-import net.thevpc.nuts.util.NMsg;
+import net.thevpc.nuts.text.NMsg;
 import net.thevpc.nuts.util.NOptional;
 import net.thevpc.nuts.elem.NElement;
 import net.thevpc.nuts.elem.NPairElement;
-import net.thevpc.nuts.elem.NElements;
 
 import java.net.URL;
 import java.util.HashMap;
