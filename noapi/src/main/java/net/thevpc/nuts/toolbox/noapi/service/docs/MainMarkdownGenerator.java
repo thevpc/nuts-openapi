@@ -23,6 +23,7 @@ public class MainMarkdownGenerator {
     private Properties httpCodes = new Properties();
     private OpenApiParser openApiParser = new OpenApiParser();
     private int maxExampleInlineLength = 80;
+    private Map<String,TypeInfo> usedTypes = new HashMap<>();
 
     public MainMarkdownGenerator(AppMessages msg) {
         this.msg = msg;
@@ -35,7 +36,7 @@ public class MainMarkdownGenerator {
 
     public MdDocument createMarkdown(MFileInfo rmodel, NPath folder, List<String> defaultAdocHeaders) {
         MdDocumentBuilder doc = new MdDocumentBuilder();
-
+        usedTypes.clear();
         List<String> options = new ArrayList<>(defaultAdocHeaders);
         if (folder.resolve("logo.png").exists()) {
             options.add(":title-logo-image: " + folder.resolve("logo.png").normalize().toAbsolute().toString());
@@ -358,7 +359,24 @@ public class MainMarkdownGenerator {
 
 
     private void _fillSchemaTypes(MFileInfo rmodel, List<MdElement> all) {
-        Map<String, TypeInfo> allTypes = rmodel.model.getTypesMap();
+        Map<String, TypeInfo> allTypes = new LinkedHashMap<>(rmodel.model.getTypesMap());
+//        for (Map.Entry<String, TypeInfo> entry : allTypes.entrySet()) {
+//            TypeInfo v = entry.getValue();
+//            if ("object".equals(v.getType())) {
+//                for (FieldInfo p : v.getFields()) {
+//                    markAsUsedType(p.schema,rmodel);
+//                }
+//            }
+//        }
+
+
+
+        for (Iterator<Map.Entry<String, TypeInfo>> iterator = allTypes.entrySet().iterator(); iterator.hasNext(); ) {
+            Map.Entry<String, TypeInfo> e = iterator.next();
+            if (!usedTypes.containsKey(e.getKey())) {
+               // iterator.remove();
+            }
+        }
         if (allTypes.isEmpty()) {
             return;
         }
@@ -419,7 +437,7 @@ public class MainMarkdownGenerator {
                     mdTableBuilder.addRows(
                             MdFactory.row().addCells(
                                     NoApiUtils.asText(p.name),
-                                    NoApiUtils.codeElement(p.schema, false, requiredSuffix(p.required), msg),
+                                    codeElementTypeInfo(p.schema, false, requiredSuffix(p.required),rmodel, msg),
                                     NoApiUtils.asText(p.description == null ? "" : p.description.trim()),
                                     NoApiUtils.jsonTextElementInlined(p.examples.isEmpty() ? null : p.examples.get(0).value)
                             )
@@ -619,16 +637,16 @@ public class MainMarkdownGenerator {
             if (withRequestBody) {
                 boolean required = call.requestBody.required;
                 String desc = call.requestBody.description;
-                for (MCall.Content item : call.requestBody.contents) {
+                for (MCall.Content content : call.requestBody.contents) {
                     all.add(MdFactory.endParagraph());
-                    all.add(MdFactory.title(5, msg.get("REQUEST_BODY").get() + " - " + item.contentType +
+                    all.add(MdFactory.title(5, msg.get("REQUEST_BODY").get() + " - " + content.getContentType() +
                             requiredSuffix(required)));
                     all.add(NoApiUtils.asText(desc));
                     if (!NBlankable.isBlank(desc) && !desc.endsWith(".")) {
                         all.add(MdFactory.text("."));
                     }
-                    TypeInfo o = item.type;
-                    if (o.getRef() != null) {
+                    TypeInfo o = content.type;
+                    if (o!=null && o.getRef() != null) {
 //                        all.add(MdFactory.endParagraph());
 //                        all.add(MdFactory.title(5, "REQUEST TYPE - " + o.ref));
                         all.add(NoApiUtils.asText(" "));
@@ -645,8 +663,8 @@ public class MainMarkdownGenerator {
                                         new MdRow(
                                                 new MdElement[]{
                                                         MdFactory.codeBacktick3("", "request-body"),
-                                                        MdFactory.codeBacktick3("", o.getRef()),
-                                                        NoApiUtils.asTextTrimmed(item.description),
+                                                        codeElementTypeInfo(o,true,"",rmodel, msg),
+                                                        NoApiUtils.asTextTrimmed(content.description),
 //                                                        jsonTextElementInlined(example),
                                                 }, false
                                         )
@@ -654,19 +672,19 @@ public class MainMarkdownGenerator {
 
                         );
                         all.add(tab);
-                        if (item.examples.size() == 1) {
+                        if (content.examples.size() == 1) {
                             all.add(MdFactory.text(msg.get("request.body.example.intro").get()));
                             all.add(MdFactory.text(":\n"));
-                            MExample example = item.examples.get(0);
+                            MExample example = content.examples.get(0);
                             if (!NBlankable.isBlank(example.description)) {
                                 all.add(NoApiUtils.asTextTrimmed(example.description));
                             }
                             all.add(NoApiUtils.jsonTextElement(example.value));
-                        } else if (item.examples.size() > 1) {
+                        } else if (content.examples.size() > 1) {
                             all.add(MdFactory.text(msg.get("request.body.example.intro.multi").get()));
                             all.add(MdFactory.text(":\n"));
                             int eIndex = 1;
-                            for (MExample example : item.examples) {
+                            for (MExample example : content.examples) {
                                 all.add(NoApiUtils.asText("Example " + eIndex));
                                 all.add(MdFactory.text(":\n"));
                                 if (!NBlankable.isBlank(example.description)) {
@@ -676,11 +694,60 @@ public class MainMarkdownGenerator {
                                 eIndex++;
                             }
                         }
+                    } else if(o!=null) {
+                        if(o.getFields().isEmpty()) {
+                            all.add(MdFactory.endParagraph());
+                            all.add(codeElementTypeInfo(o, true, "",rmodel, msg));
+                        }else {
+//                        all.add(MdFactory.endParagraph());
+//                        all.add(MdFactory.title(5, "REQUEST TYPE - " + o.ref));
+                            all.add(MdFactory.endParagraph());
+                            all.add(NoApiUtils.asText(NMsg.ofV(msg.get("requestType.info.here").get(), NMaps.of("type", userNameForContentType(content.getContentType()))).toString()));
 
+                            MdTable tab = new MdTable(
+                                    new MdColumn[]{
+                                            new MdColumn(NoApiUtils.asText(msg.get("NAME").get()), MdHorizontalAlign.LEFT),
+                                            new MdColumn(NoApiUtils.asText(msg.get("TYPE").get()), MdHorizontalAlign.LEFT),
+                                            new MdColumn(NoApiUtils.asText(msg.get("DESCRIPTION").get()), MdHorizontalAlign.LEFT),
+//                                        new MdColumn(NoApiUtils.asText(msg.get("EXAMPLE").get()), MdHorizontalAlign.LEFT)
+                                    },
+                                    o.getFields().stream()
+                                            .map(x->
+                                                            new MdRow(
 
-                    } else {
-                        all.add(MdFactory.endParagraph());
-                        all.add(NoApiUtils.codeElement(o, true, "", msg));
+                                                                    new MdElement[]{
+                                                                            MdFactory.codeBacktick3("", x.name),
+                                                                            codeElementTypeInfo(x.schema,false,"",rmodel,msg),
+                                                                            NoApiUtils.asTextTrimmed(x.description),
+//                                                        jsonTextElementInlined(example),
+                                                                    }, false
+                                                            )
+                                            ).toArray(MdRow[]::new)
+                            );
+                            all.add(tab);
+                            if (content.examples.size() == 1) {
+                                all.add(MdFactory.text(msg.get("request.body.example.intro").get()));
+                                all.add(MdFactory.text(":\n"));
+                                MExample example = content.examples.get(0);
+                                if (!NBlankable.isBlank(example.description)) {
+                                    all.add(NoApiUtils.asTextTrimmed(example.description));
+                                }
+                                all.add(NoApiUtils.jsonTextElement(example.value));
+                            } else if (content.examples.size() > 1) {
+                                all.add(MdFactory.text(msg.get("request.body.example.intro.multi").get()));
+                                all.add(MdFactory.text(":\n"));
+                                int eIndex = 1;
+                                for (MExample example : content.examples) {
+                                    all.add(NoApiUtils.asText("Example " + eIndex));
+                                    all.add(MdFactory.text(":\n"));
+                                    if (!NBlankable.isBlank(example.description)) {
+                                        all.add(NoApiUtils.asTextTrimmed(example.description));
+                                    }
+                                    all.add(NoApiUtils.jsonTextElement(example.value));
+                                    eIndex++;
+                                }
+                            }
+                        }
                     }
                 }
             }
@@ -702,34 +769,34 @@ public class MainMarkdownGenerator {
             }
             for (MCall.Content content : response.contents) {
                 all.add(MdFactory.endParagraph());
-                if (content.type.getUserType().equals("$ref")) {
+                if(content.type.getFields().isEmpty()) {
                     all.add(MdFactory.table()
                             .addColumns(
                                     MdFactory.column().setName(msg.get("RESPONSE_MODEL").get()),
                                     MdFactory.column().setName(msg.get("RESPONSE_TYPE").get())//,
                             )
-                            .addRows(
-                                    MdFactory.row().addCells(
-                                            NoApiUtils.asText(content.contentType),
-                                            NoApiUtils.asText(content.type.getRef())
-                                    )
-                            ).build()
+                            .addRows(MdFactory.row().addCells(
+                                    NoApiUtils.asText(content.getContentType()),
+                                    codeElementTypeInfo(content.type,false,"",rmodel,msg)
+                            ).build())
+                            .build()
                     );
-                } else {
+                }else{
                     all.add(MdFactory.table()
                             .addColumns(
                                     MdFactory.column().setName(msg.get("RESPONSE_MODEL").get()),
-                                    MdFactory.column().setName(msg.get("RESPONSE_TYPE").get())
+                                    MdFactory.column().setName(msg.get("RESPONSE_TYPE").get())//,
                             )
-                            .addRows(
+                            .addRows(content.type.getFields().stream().map(x->
                                     MdFactory.row().addCells(
-                                            NoApiUtils.asText(content.contentType),
-                                            NoApiUtils.codeElement(content.type, true, "", msg)
-                                            //NoApiUtils.asText(o.getRef())
-                                    )
-                            ).build()
+                                            NoApiUtils.asText(content.getContentType()),
+                                            codeElementTypeInfo(x.schema,false,"",rmodel,msg)
+                                    ).build()
+                            ).toArray(MdRow[]::new))
+                            .build()
                     );
                 }
+
                 all.add(MdFactory.endParagraph());
                 List<MExample> examples = content.type.getExamples().stream().filter(x -> !NBlankable.isBlank(x) && !NBlankable.isBlank(x.value)).distinct().collect(Collectors.toList());
                 if (!examples.isEmpty()) {
@@ -749,6 +816,37 @@ public class MainMarkdownGenerator {
 
     }
 
+    private String userNameForContentType(String contentType) {
+        contentType=NStringUtils.trim(contentType);
+        switch (contentType) {
+            case "application/json":{
+                return "JSON";
+            }
+            case "application/xml":{
+                return "XML";
+            }
+            case "application/x-www-form-urlencoded":{
+                return "URL Encoded";
+            }
+            case "text/plain":{
+                return "Text";
+            }
+            case "application/octet-stream":{
+                return "Byte Array";
+            }
+            case "text/csv":{
+                return "CSV";
+            }
+            case "application/pdf":{
+                return "PDF";
+            }
+            case "":{
+                return "Custom";
+            }
+        }
+        return NNameFormat.TITLE_NAME.format(contentType.toLowerCase().replace("/"," "));
+    }
+
 
     private String evalCodeDescription(String s) {
         if (s == null) {
@@ -760,6 +858,27 @@ public class MainMarkdownGenerator {
             return c;
         }
         return "";
+    }
+
+    public MdElement codeElementTypeInfo(TypeInfo type, boolean includeDesc,String extra,MFileInfo rmodel,AppMessages msg) {
+        markAsUsedType(type,rmodel);
+        return NoApiUtils.codeElementTypeInfo(type,includeDesc,extra,msg);
+    }
+    private void markAsUsedType(TypeInfo type,MFileInfo rmodel){
+        if(type==null){
+            return;
+        }
+        Map<String, TypeInfo> tm = rmodel.model.getTypesMap();
+        if(type.getRef()!=null) {
+            usedTypes.put(type.getRef(), type);
+        }
+        TypeInfo a = type.getArrayComponentType();
+        if(a!=null){
+            markAsUsedType(a,rmodel);
+        }
+        for (FieldInfo field : type.getFields()) {
+            markAsUsedType(field.schema,rmodel);
+        }
     }
 
 }
