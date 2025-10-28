@@ -106,6 +106,12 @@ public class NoApiUtils {
         }
     }
 
+    public static MdElement codeElementTypeInfo(TypeInfo type, boolean includeDesc,String extra,AppMessages msg) {
+        return type.getUserType().equals("$ref") ? NoApiUtils.asText(type.getRef())
+                :
+                NoApiUtils.codeElement(type, includeDesc, extra==null?"":extra, msg);
+    }
+
     public static MdElement codeElement(TypeInfo o, boolean includeDesc, String extra, AppMessages msg) {
         String type = "javascript";
         if ("object".equals(o.getUserType())) {
