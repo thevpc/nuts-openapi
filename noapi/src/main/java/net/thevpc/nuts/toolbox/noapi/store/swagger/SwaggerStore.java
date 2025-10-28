@@ -485,14 +485,14 @@ public class SwaggerStore implements NoApiStore {
             for (NElement item : r) {
                 NPairElement ii = item.asPair().get();
                 MCall.Content vv = new MCall.Content();
-                vv.contentType = ii.key().asStringValue().get();
+                vv.setContentType(ii.key().asStringValue().get());
                 NObjectElement iiv = ii.value().asObject().get();
                 TypeInfo o = new OpenApiParser().parseOneType(iiv, null, allTypes);
                 String description = iiv.getStringValue("description").orNull();
                 NElement example = iiv.get("example").orNull();
                 vv.type = o;
                 cc.requestBody.contents.add(vv);
-                if (o.getRef() != null) {
+                if (o!=null && o.getRef() != null) {
                     NElement s = schemas.get(o.getRef()).orNull();
                     if (example == null && s != null) {
                         example = s.asObject().get().get("example").orNull();
@@ -527,17 +527,17 @@ public class SwaggerStore implements NoApiStore {
                         TypeInfo o = new OpenApiParser().parseOneType(content.value().asObject().get(), null, allTypes);
                         MCall.Content respContent = new MCall.Content();
                         response.contents.add(respContent);
-                        if (o.getUserType().equals("$ref")) {
+                        if (o!=null && o.getUserType()!=null && o.getUserType().equals("$ref")) {
                             typeCrossRefs.add(new TypeCrossRef(
                                     o.getRef(),
                                     url, "Response (" + s + ")"
                             ));
-                            respContent.contentType = content.key().asStringValue().get();
+                            respContent.setContentType(content.key().asStringValue().get());
                             respContent.type = o;
                             respContent.typeName = o.getRef();
                             respContent.examples.addAll(o.getExamples());
-                        } else {
-                            respContent.contentType = content.key().asStringValue().get();
+                        }else if(o!=null){
+                            respContent.setContentType(content.key().asStringValue().get());
                             respContent.type = o;
                             respContent.typeName = o.getRef();
                             respContent.examples.addAll(o.getExamples());
