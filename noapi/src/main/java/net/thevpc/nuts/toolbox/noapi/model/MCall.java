@@ -24,6 +24,51 @@ public class MCall {
         public String typeName;
         public List<MExample> examples=new ArrayList<>();
         public String description;
+
+        public String getContentType() {
+            return contentType;
+        }
+
+        public Content setContentType(String contentType) {
+            this.contentType = contentType;
+            return this;
+        }
+
+        public TypeInfo getType() {
+            return type;
+        }
+
+        public Content setType(TypeInfo types) {
+            this.type = types;
+            return this;
+        }
+
+        public String getTypeName() {
+            return typeName;
+        }
+
+        public Content setTypeName(String typeName) {
+            this.typeName = typeName;
+            return this;
+        }
+
+        public List<MExample> getExamples() {
+            return examples;
+        }
+
+        public Content setExamples(List<MExample> examples) {
+            this.examples = examples;
+            return this;
+        }
+
+        public String getDescription() {
+            return description;
+        }
+
+        public Content setDescription(String description) {
+            this.description = description;
+            return this;
+        }
     }
     public static class RequestBody{
         public boolean required;
