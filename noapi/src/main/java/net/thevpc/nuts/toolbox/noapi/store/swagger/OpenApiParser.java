@@ -4,7 +4,7 @@ import net.thevpc.nuts.elem.*;
 import net.thevpc.nuts.toolbox.noapi.model.*;
 import net.thevpc.nuts.toolbox.noapi.service.MFileInfo;
 import net.thevpc.nuts.toolbox.noapi.service.MStoreAndModel;
-import net.thevpc.nuts.toolbox.noapi.store.NoApiStore;
+import net.thevpc.nuts.util.NAssert;
 import net.thevpc.nuts.util.NBlankable;
 import net.thevpc.nuts.util.NLiteral;
 
@@ -12,7 +12,7 @@ import java.util.*;
 
 public class OpenApiParser {
 
-    public static Vars _fillVars(MStoreAndModel rmodel,Map<String, String> vars) {
+    public static Vars _fillVars(MStoreAndModel rmodel, Map<String, String> vars) {
         Map<String, String> all = new LinkedHashMap<>();
 
         for (MVar c : rmodel.model.getVariables()) {
@@ -75,11 +75,17 @@ public class OpenApiParser {
     public TypeInfo parseOneType(NObjectElement value, String name0, Map<String, TypeInfo> allTypes) {
         NObjectElement v = value.asObject().get();
         TypeInfo tt = new TypeInfo();
-        tt.setName(v.getStringValue("name").orElse(name0));
-        tt.setType(value.getStringValue("type").orNull());
-        if (NBlankable.isBlank(tt.getType())) {
-            if (value.get("properties").orNull() != null) {
+        String typeName = v.getStringValue("name").orElse(name0);
+        tt.setName(typeName);
+        String typeType = value.getStringValue("type").orNull();
+        tt.setType(typeType);
+        if (NBlankable.isBlank(typeType)) {
+            if (value.get("type").flatMap(x -> x.asStringValue()).isPresent()) {
+                tt.setType(value.get("type").get().asStringValue().get());
+            } else if (value.get("properties").orNull() != null) {
                 tt.setType("object");
+            } else if (value.getByPath("schema", "type").flatMap(x -> x.asStringValue()).isPresent()) {
+                tt.setType(value.getByPath("schema", "type").get().asStringValue().get());
             } else if (value.get("items").orNull() != null) {
                 tt.setType("array");
             } else if (
@@ -91,10 +97,10 @@ public class OpenApiParser {
                 tt.setType("string");
             }
         }
-        tt.setSmartName(tt.getType());
+        tt.setSmartName(typeType);
         tt.setDescription(v.getStringValue("description").orNull());
         tt.setSummary(v.getStringValue("summary").orNull());
-        tt.getExamples().add(new MExample(null,value.get("example").orNull()));
+        tt.getExamples().add(new MExample(null, value.get("example").orNull()));
         if (!NBlankable.isBlank(value.getStringValue("$ref").orNull())) {
             tt.setRefLong(value.getStringValue("$ref").orNull());
             tt.setRef(userNameFromRefValue(tt.getRefLong()));
@@ -105,7 +111,7 @@ public class OpenApiParser {
             tt.setRef(userNameFromRefValue(tt.getRefLong()));
             tt.setUserType("$ref");
             tt.setSmartName(tt.getRef());
-        } else if ("array".equals(tt.getType())) {
+        } else if ("array".equals(typeType)) {
             NObjectElement items = v.getObject("items").orNull();
             if (items == null) {
                 TypeInfo a = new TypeInfo();
@@ -135,36 +141,10 @@ public class OpenApiParser {
                 }
             }
             tt.setUserType(tt.getSmartName());
-        } else if (value.get("properties").orNull() != null || "object".equals(tt.getType())) {
-            Set<String> requiredSet = new HashSet<>();
-            NArrayElement requiredElem = v.getArray("required").orNull();
-            if (requiredElem != null) {
-                for (NElement e : requiredElem) {
-                    String a = e.asStringValue().orElse("");
-                    if (!NBlankable.isBlank(a)) {
-                        a = a.trim();
-                        requiredSet.add(a);
-                    }
-                }
-            }
-            NObjectElement a = v.getObject("properties").orNull();
-            if (a != null) {
-                for (NPairElement p : a.pairs()) {
-                    FieldInfo ff = new FieldInfo();
-                    ff.name = p.key().asStringValue().orElse("").trim();
-                    NObjectElement prop = p.value().asObject().get();
-                    ff.description = prop.getStringValue("description").orNull();
-                    ff.summary = prop.getStringValue("summary").orNull();
-                    NElement example = prop.get("example").orNull();
-                    if(example!=null) {
-                        ff.examples.add(new MExample(null,example));
-                    }
-                    ff.required = requiredSet.contains(ff.name);
-                    ff.schema = parseOneType(prop, null, allTypes);
-                    tt.getFields().add(ff);
-                }
-                return tt;
-            }
+        } else if (value.getByPath("schema", "properties").isPresent()) {
+            return _doParseOneTypeProps(value.getByPath("schema").get().asObject().get(), tt, allTypes);
+        } else if (value.get("properties").orNull() != null || "object".equals(typeType)) {
+            return _doParseOneTypeProps(value, tt, allTypes);
         } else {
             tt.setFormat(value.getStringValue("format").orNull());
             tt.setMinLength(value.getStringValue("minLength").orNull());
@@ -177,10 +157,10 @@ public class OpenApiParser {
                 tt.setUserType(tt.getFormat());
             } else if (!NBlankable.isBlank(tt.getRefLong())) {
                 tt.setUserType(tt.getRef());
-            } else if (NBlankable.isBlank(tt.getType())) {
+            } else if (NBlankable.isBlank(typeType)) {
                 tt.setUserType("string");
             } else {
-                tt.setUserType(tt.getType().trim().toLowerCase());
+                tt.setUserType(typeType.trim().toLowerCase());
             }
             NArrayElement senum = value.getArray("enum").orElse(NArrayElement.ofEmpty());
             if (!senum.isEmpty()) {
@@ -196,8 +176,40 @@ public class OpenApiParser {
         return tt;
     }
 
-    public Map<String, TypeInfo> parseTypes(NObjectElement root) {
+    private TypeInfo _doParseOneTypeProps(NObjectElement v, TypeInfo tt, Map<String, TypeInfo> allTypes) {
+        Set<String> requiredSet = new HashSet<>();
+        NArrayElement requiredElem = v.getArray("required").orNull();
+        if (requiredElem != null) {
+            for (NElement e : requiredElem) {
+                String a = e.asStringValue().orElse("");
+                if (!NBlankable.isBlank(a)) {
+                    a = a.trim();
+                    requiredSet.add(a);
+                }
+            }
+        }
+        NObjectElement a = v.getObject("properties").orNull();
+        if (a != null) {
+            for (NPairElement p : a.pairs()) {
+                FieldInfo ff = new FieldInfo();
+                ff.name = p.key().asStringValue().orElse("").trim();
+                NObjectElement prop = p.value().asObject().get();
+                ff.description = prop.getStringValue("description").orNull();
+                ff.summary = prop.getStringValue("summary").orNull();
+                NElement example = prop.get("example").orNull();
+                if (example != null) {
+                    ff.examples.add(new MExample(null, example));
+                }
+                ff.required = requiredSet.contains(ff.name);
+                TypeInfo a0 = parseOneType(prop, null, allTypes);
+                ff.schema = a0;
+                tt.getFields().add(ff);
+            }
+        }
+        return tt;
+    }
 
+    public Map<String, TypeInfo> parseTypes(NObjectElement root) {
         Map<String, TypeInfo> res = new LinkedHashMap<>();
         NObjectElement schemas = root.getObjectByPath("components", "schemas").orNull();
         if (schemas == null || schemas.isEmpty()) {
