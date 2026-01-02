@@ -35,10 +35,10 @@ public class SwaggerStore implements NoApiStore {
         }
         NElement apiElement;
         if (json) {
-            apiElement = NElementParser.ofJson().parse(source, NElement.class);
+            apiElement = NElementReader.ofJson().read(source, NElement.class);
         } else {
 //            return NElementParser.ofJson().parse(inputStream, NutsElement.class);
-            apiElement = NElementParser.ofYaml().parse(source);
+            apiElement = NElementReader.ofYaml().read(source);
         }
         List<TypeCrossRef> typeCrossRefs = new ArrayList<>();
         MStoreModel mStoreModel = new MStoreModel();
@@ -63,7 +63,7 @@ public class SwaggerStore implements NoApiStore {
 
 
     public MConf loadConfigFile(NPath cf) {
-        NObjectElement obj = NElementParser.ofJson().parse(cf).asObject().get();
+        NObjectElement obj = NElementReader.ofJson().read(cf).asObject().get();
         MConf c = new MConf();
         c.targetName = obj.getStringValue("target-name").get();
         c.targetId = obj.getStringValue("target-id").get();
@@ -83,9 +83,9 @@ public class SwaggerStore implements NoApiStore {
     public Map<Object, Object> loadVars(String varsPath) {
         if (!NBlankable.isNonBlank(varsPath)) {
             if (NPath.of(varsPath).isRegularFile()) {
-                return NElementParser.ofJson().parse(NPath.of(varsPath), Map.class);
+                return NElementReader.ofJson().read(NPath.of(varsPath), Map.class);
             } else if (NPath.of(varsPath + ".json").isRegularFile()) {
-                return NElementParser.ofJson().parse(NPath.of(varsPath + ".json"), Map.class);
+                return NElementReader.ofJson().read(NPath.of(varsPath + ".json"), Map.class);
             } else {
                 return new HashMap<>();
             }
