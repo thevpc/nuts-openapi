@@ -215,7 +215,7 @@ public class SwaggerStore implements NoApiStore {
             h.deprecated = vobj.getBooleanValue("deprecated").orElse(false);
             h.required = vobj.getBooleanValue("required").orElse(false);
             h.typeName = vobj.getStringValue("type")
-                    .orElseUse(() ->
+                    .orElseGetOptionalFrom(() ->
                             vobj.getObject("schema")
                                     .orElse(NObjectElement.ofEmpty())
                                     .getStringValue("type")
@@ -264,7 +264,7 @@ public class SwaggerStore implements NoApiStore {
             h.deprecated = vobj.getBooleanValue("deprecated").orElse(false);
             h.required = vobj.getBooleanValue("required").orElse(false);
             h.typeName = vobj.getStringValue("type")
-                    .orElseUse(() ->
+                    .orElseGetOptionalFrom(() ->
                             vobj.getObject("schema")
                                     .orElse(NObjectElement.ofEmpty())
                                     .getStringValue("type")
