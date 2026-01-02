@@ -173,8 +173,8 @@ public class TsonStore implements NoApiStore {
     
     public List<MSecurityScheme> findSecuritySchemes(NElement root) {
         List<MSecurityScheme> all = new ArrayList<>();
-        NObjectElement components = root.toObject().thenOptional(x -> x.get("components"))
-                .thenOptional(x -> x.asObject()).orNull();
+        NObjectElement components = root.toObject().flatMap(x -> x.get("components"))
+                .flatMap(x -> x.asObject()).orNull();
         if (components != null) {
             for (NElement cc : components) {
                 switch (cc.type()) {
@@ -266,9 +266,9 @@ public class TsonStore implements NoApiStore {
     public List<MServer> findServers(NElement root) {
         List<MServer> all = new ArrayList<>();
         NListContainerElement components = root.toObject()
-                .thenOptional(x -> x.get("info"))
-                .thenOptional(x -> x.asObject().get().get("servers"))
-                .thenOptional(x -> x.asListContainer()).orNull();
+                .flatMap(x -> x.get("info"))
+                .flatMap(x -> x.asObject().get().get("servers"))
+                .flatMap(x -> x.asListContainer()).orNull();
         if (components != null) {
             for (NElement cc : components.children()) {
                 switch (cc.type()) {
@@ -349,8 +349,8 @@ public class TsonStore implements NoApiStore {
     
     public Map<String, TypeInfo> findTypesMap(NElement root) {
         Map<String, TypeInfo> all = new LinkedHashMap<>();
-        NObjectElement components = root.toObject().thenOptional(x -> x.get("components"))
-                .thenOptional(x -> x.asObject()).orNull();
+        NObjectElement components = root.toObject().flatMap(x -> x.get("components"))
+                .flatMap(x -> x.asObject()).orNull();
         if (components != null) {
             for (NElement cc : components) {
                 switch (cc.type()) {
