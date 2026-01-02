@@ -99,10 +99,10 @@ public class NoApiUtils {
         }
 
         if (json) {
-            return NElementParser.ofJson().parse(source, NElement.class);
+            return NElementReader.ofJson().read(source, NElement.class);
         } else {
 //            return NElementParser.ofJson().parse(inputStream, NutsElement.class);
-            return NElementParser.ofYaml().parse(source);
+            return NElementReader.ofYaml().read(source);
         }
     }
 
