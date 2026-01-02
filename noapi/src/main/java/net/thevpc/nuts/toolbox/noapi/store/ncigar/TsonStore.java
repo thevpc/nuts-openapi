@@ -14,7 +14,7 @@ public class TsonStore implements NoApiStore {
 
     @Override
     public MStoreModel loadStoreModel(NPath source) {
-        NElement root = NElementParser.ofJson().parse(source.toFile().get());
+        NElement root = NElementReader.ofJson().read(source.toFile().get());
         List<TypeCrossRef> typeCrossRefs = new ArrayList<>();
         MStoreModel mStoreModel = new MStoreModel();
         mStoreModel.setTitle(getTitle(root).orNull());
