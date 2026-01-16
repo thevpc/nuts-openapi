@@ -282,10 +282,10 @@ public class TsonStore implements NoApiStore {
                             switch (oo.type()) {
                                 case DOUBLE_QUOTED_STRING:
                                 case SINGLE_QUOTED_STRING:
-                                case ANTI_QUOTED_STRING:
+                                case BACKTICK_STRING:
                                 case TRIPLE_DOUBLE_QUOTED_STRING:
                                 case TRIPLE_SINGLE_QUOTED_STRING:
-                                case TRIPLE_ANTI_QUOTED_STRING:
+                                case TRIPLE_BACKTICK_STRING:
                                 case LINE_STRING: {
                                     if (h.url == null) {
                                         h.url = oo.asStringValue().orNull();
@@ -445,10 +445,10 @@ public class TsonStore implements NoApiStore {
                                             }
                                             case DOUBLE_QUOTED_STRING:
                                             case SINGLE_QUOTED_STRING:
-                                            case ANTI_QUOTED_STRING:
+                                            case BACKTICK_STRING:
                                             case TRIPLE_DOUBLE_QUOTED_STRING:
                                             case TRIPLE_SINGLE_QUOTED_STRING:
-                                            case TRIPLE_ANTI_QUOTED_STRING:
+                                            case TRIPLE_BACKTICK_STRING:
                                             case LINE_STRING:
                                             case NAME: {
                                                 f.baseFieldTypeName = fieldType.asStringValue().orNull();
