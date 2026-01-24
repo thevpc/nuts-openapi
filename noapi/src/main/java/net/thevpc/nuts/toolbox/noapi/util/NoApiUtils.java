@@ -150,7 +150,7 @@ public class NoApiUtils {
 //            if(t.isArray()) {
 //                return t.asStringValue().get();
 //            }
-            String ss = NElements.of().normalizeJson(((NElement) example)).toString(false);
+            String ss = NElements.of().normalizeJson(((NElement) example)).toString();
             return ss;
         }
         return example.toString();
