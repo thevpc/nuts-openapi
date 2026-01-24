@@ -398,9 +398,9 @@ public class TsonStore implements NoApiStore {
                                             } else if (annotation.name().equals("deprecated")) {
                                                 f.deprecated = true;
                                             } else if (annotation.name().equals("summary")) {
-                                                f.summary = annotation.param(0).asStringValue().orNull();
+                                                f.summary = annotation.param(0).get().asStringValue().orNull();
                                             } else if (annotation.name().equals("description")) {
-                                                f.description = annotation.param(0).asStringValue().orNull();
+                                                f.description = annotation.param(0).get().asStringValue().orNull();
                                             }
                                         }
                                         NElement bodyElement = null;
@@ -573,20 +573,12 @@ public class TsonStore implements NoApiStore {
 
     private String resolveComments(NElement e) {
         StringBuilder comments = new StringBuilder();
-        NElementComments comments1 = e.comments();
-        if (comments1 != null) {
-            for (NElementComment comment : comments1.leadingComments()) {
-                if (comments.length() > 0) {
-                    comments.append("\n");
-                }
-                comments.append(comment.text());
+        List<NElementComment> comments1 = e.comments();
+        for (NElementComment comment : comments1) {
+            if (comments.length() > 0) {
+                comments.append("\n");
             }
-            for (NElementComment comment : comments1.trailingComments()) {
-                if (comments.length() > 0) {
-                    comments.append("\n");
-                }
-                comments.append(comment.text());
-            }
+            comments.append(comment.text());
         }
         return comments.toString().trim();
     }
