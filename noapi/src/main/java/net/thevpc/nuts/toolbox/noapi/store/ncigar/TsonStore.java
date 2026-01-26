@@ -354,7 +354,7 @@ public class TsonStore implements NoApiStore {
         if (components != null) {
             for (NElement cc : components) {
                 switch (cc.type()) {
-                    case NAMED_PARAMETRIZED_OBJECT: {
+                    case FULL_OBJECT: {
                         NObjectElement u = cc.toObject().get();
                         if (u.name().orElse("").equals("schema")) {
                             TypeInfo h = new TypeInfo();
@@ -414,7 +414,7 @@ public class TsonStore implements NoApiStore {
 
                                         NElement fieldType = p2;
                                         switch (fieldType.type()) {
-                                            case NAMED_PARAMETRIZED_OBJECT: {
+                                            case FULL_OBJECT: {
                                                 NObjectElementBuilder b = fieldType.toObject().get().builder();
                                                 List<NElement> body1 = b.children();
                                                 b.clear();
@@ -435,7 +435,7 @@ public class TsonStore implements NoApiStore {
                                                 f.baseFieldTypeName = b.name().orNull();
                                                 break;
                                             }
-                                            case NAMED_PARAMETRIZED_ARRAY:
+                                            case FULL_ARRAY:
                                             case NAMED_ARRAY: {
                                                 f.arrays++;
                                                 f.baseFieldTypeName = fieldType.toArray().get().name().orNull();
