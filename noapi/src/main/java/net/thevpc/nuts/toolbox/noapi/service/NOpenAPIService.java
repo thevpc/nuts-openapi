@@ -136,7 +136,7 @@ public class NOpenAPIService {
                                     || x.getName().startsWith(sourceBaseName + "_")
                     );
                 }
-        ).redescribe(NElementDescribables.ofDesc("config files")).toList();
+        ).withDescription(NDescribables.ofDesc("config files")).toList();
     }
 
     private void generateMainDocumentFromFile(MFileInfo mFileInfo, NPath targetPathObj, NPath sourceFolder) {
