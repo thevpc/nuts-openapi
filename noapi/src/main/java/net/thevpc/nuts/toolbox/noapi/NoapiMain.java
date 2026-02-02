@@ -158,7 +158,7 @@ public class NoapiMain  {
                     data.add(c);
                 }
                 for (NoapiCmdData d : data) {
-                    NAssert.requireNonBlank(d.getPath(), "path");
+                    NAssert.requireNamedNonBlank(d.getPath(), "path");
                     if (!"pdf".equals(d.getCommand())) {
                         throw new NIllegalArgumentException(NMsg.ofC("unsupported command %s", d.getCommand()));
                     }
