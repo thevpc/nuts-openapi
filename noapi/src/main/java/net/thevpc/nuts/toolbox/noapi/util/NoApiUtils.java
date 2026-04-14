@@ -107,14 +107,14 @@ public class NoApiUtils {
     }
 
     public static MdElement codeElementTypeInfo(TypeInfo type, boolean includeDesc,String extra,AppMessages msg) {
-        return type.getUserType().equals("$ref") ? NoApiUtils.asText(type.getRef())
+        return "$ref".equals(type.getUserType()) ? NoApiUtils.asText(type.getRef())
                 :
                 NoApiUtils.codeElement(type, includeDesc, extra==null?"":extra, msg);
     }
 
     public static MdElement codeElement(TypeInfo o, boolean includeDesc, String extra, AppMessages msg) {
         String type = "javascript";
-        if ("object".equals(o.getUserType())) {
+        if ("object".equals(o.getUserType()) || "object".equals(o.getType())) {
             type = "json";
         }
 
@@ -165,7 +165,7 @@ public class NoApiUtils {
         }
         if (o.getRef() != null) {
             return o.getRef() + descSep;
-        } else if ("object".equals(o.getUserType())) {
+        } else if ("object".equals(o.getUserType()) ||"object".equals(o.getType())) {
             StringBuilder sb = new StringBuilder("{");
             for (FieldInfo p : o.getFields()) {
                 sb.append("\n").append(indent).append("  ").append(p.name).append(": ").append(toCode(p.schema, includeDesc, indent + "  ", msg));
