@@ -74,20 +74,19 @@ public class MainMarkdownGenerator {
     public static class Templater {
         private Map<String, String> vars0;
         private NExprTemplate bashStyleTemplate;
-        private NExprMutableDeclarations declarations;
+        private NExprMutableContext declarations;
 
         public Templater(Map<String, String> vars0) {
             this.vars0 = vars0;
-            declarations = NExprs.of().newMutableDeclarations(new NExprEvaluator() {
-                @Override
-                public NOptional<NExprVar> getVar(String varName, NExprDeclarations context) {
-                    String u = vars0.get(varName);
-                    if (u != null) {
-                        return NOptional.of(context.ofVar(varName, u));
-                    }
-                    return NOptional.of(context.ofVar(varName, null));
-                }
-            });
+            declarations = NExprContextBuilder.of()
+                    .declareVars((String varName, NExprContext context)->{
+                        String u = vars0.get(varName);
+                        if (u != null) {
+                            return NOptional.of(NExprVar.ofVar(varName, u));
+                        }
+                        return NOptional.of(NExprVar.ofVar(varName, null));
+                    })
+                    .buildMutable();
         }
 
         public boolean evalBoolean(String enabled, boolean defaultValue) {
