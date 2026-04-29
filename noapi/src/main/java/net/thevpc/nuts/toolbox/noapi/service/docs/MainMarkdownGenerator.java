@@ -79,6 +79,7 @@ public class MainMarkdownGenerator {
         public Templater(Map<String, String> vars0) {
             this.vars0 = vars0;
             declarations = NExprContextBuilder.of()
+                    .declareBuiltins()
                     .declareVars((String varName, NExprContext context)->{
                         String u = vars0.get(varName);
                         if (u != null) {
