@@ -83,7 +83,7 @@ public class NoApiUtils {
     public static NElement loadElement(NPath source, NSession session) {
         boolean json = false;
 //        Path sourcePath = Paths.get(source).normalize().toAbsolutePath();
-        try (BufferedReader r = new BufferedReader(new InputStreamReader(source.getInputStream()))) {
+        try (BufferedReader r = new BufferedReader(new InputStreamReader(source.inputStream()))) {
             String t;
             while ((t = r.readLine()) != null) {
                 t = t.trim();
