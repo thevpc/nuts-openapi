@@ -50,7 +50,7 @@ public class NOpenAPIService {
             throw new NNoSuchElementException(NMsg.ofC("file not found %s", sourcePath));
         }
         if (sourcePath.isDirectory()) {
-            List<NPath> found = sourcePath.list().stream().filter(x -> NoApiUtils.isProjectMainFileName(x.getName())).collect(Collectors.toList());
+            List<NPath> found = sourcePath.list().stream().filter(x -> NoApiUtils.isProjectMainFileName(x.name())).collect(Collectors.toList());
             if (found.size() == 1) {
                 return found.get(0);
             }
@@ -70,9 +70,9 @@ public class NOpenAPIService {
         }
         String sourceBaseName = sourcePath.nameParts(NPathExtensionType.SMART).getBaseName();
         MStoreAndModel rmodel=new MStoreAndModel();
-        if(sourcePath.getName().endsWith(".tson")) {
+        if(sourcePath.name().endsWith(".tson")) {
             rmodel.store = new TsonStore();
-        }else if(sourcePath.getName().endsWith(".json") || sourcePath.getName().endsWith(".yaml")) {
+        }else if(sourcePath.name().endsWith(".json") || sourcePath.name().endsWith(".yaml")) {
             rmodel.store=new SwaggerStore();
         }else{
             throw new IllegalArgumentException("Unsupported file type: " + sourcePath);
@@ -100,7 +100,7 @@ public class NOpenAPIService {
 
 //        Path path = Paths.get("/data/from-git/RapiPdf/docs/specs/maghrebia-api-1.1.2.yml");
         rmodel.targetType = NoApiUtils.resolveTarget(target, SupportedTargetType.PDF);
-        rmodel.sourceFolder = rmodel.sourcePath.getParent();
+        rmodel.sourceFolder = rmodel.sourcePath.parent();
         rmodel.parentPath = rmodel.sourceFolder.resolve("dist-version-" + documentVersion);
         NPath targetPathObj = NoApiUtils.addExtension(sourcePath, rmodel.parentPath, NPath.of(target), rmodel.targetType, documentVersion);
 
@@ -129,11 +129,11 @@ public class NOpenAPIService {
         return sourceFolder.stream().filter(
                 (NPath x) ->
                 {
-                    return NoApiUtils.isProjectConfigFileName(x.getName())
+                    return NoApiUtils.isProjectConfigFileName(x.name())
                             && (
-                            x.getName().startsWith(sourceBaseName + ".")
-                                    || x.getName().startsWith(sourceBaseName + "-")
-                                    || x.getName().startsWith(sourceBaseName + "_")
+                            x.name().startsWith(sourceBaseName + ".")
+                                    || x.name().startsWith(sourceBaseName + "-")
+                                    || x.name().startsWith(sourceBaseName + "_")
                     );
                 }
         ).withDescription(NDescribables.ofDesc("config files")).toList();
@@ -157,7 +157,7 @@ public class NOpenAPIService {
             session.out().println(NMsg.ofC("copy  config  file %s", configFileCopy));
         }
         NPath targetPathObj2 = NoApiUtils.addExtension(mFileInfo.rmodel.sourcePath, mFileInfo.rmodel.parentPath, NPath.of(mFileInfo.rmodel.target), mFileInfo.rmodel.targetType, "");
-        generateConfigDocument(mFileInfo, confFile, targetPathObj2.nameParts(NPathExtensionType.SMART).getBaseName(), targetPathObj.getName());
+        generateConfigDocument(mFileInfo, confFile, targetPathObj2.nameParts(NPathExtensionType.SMART).getBaseName(), targetPathObj.name());
     }
 
     private void generateConfigDocument(MFileInfo mFileInfo, MConf configElements, String baseName, String apiFileName) {
@@ -169,7 +169,7 @@ public class NOpenAPIService {
 
         NPath newFile = mFileInfo.rmodel.parentPath.resolve(baseName + "-" + NoApiUtils.toValidFileName(configElements.targetId) + "-" + documentVersion + ".pdf");
         ConfigMarkdownGenerator mg = new ConfigMarkdownGenerator(session, msg);
-        MdDocument md = mg.createMarkdown(mFileInfo, configElements, newFile.getParent(), apiFileName, defaultAdocHeaders);
+        MdDocument md = mg.createMarkdown(mFileInfo, configElements, newFile.parent(), apiFileName, defaultAdocHeaders);
         NoApiUtils.writeAdoc(md, newFile, mFileInfo.rmodel.keep, mFileInfo.rmodel.targetType);
     }
 

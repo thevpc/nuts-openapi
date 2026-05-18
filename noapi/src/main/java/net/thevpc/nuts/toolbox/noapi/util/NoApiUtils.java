@@ -235,9 +235,9 @@ public class NoApiUtils {
         sourcePath = sourcePath.normalize().toAbsolute();
         String e = targetType.name().toLowerCase();
         if (parent == null) {
-            parent = sourcePath.getParent();
+            parent = sourcePath.parent();
         }
-        if (NBlankable.isBlank(target) || target.getName().equals(".pdf") || target.getName().equals(".adoc") || target.getName().equals(".json")) {
+        if (NBlankable.isBlank(target) || target.name().equals(".pdf") || target.name().equals(".adoc") || target.name().equals(".json")) {
             NPathNameParts smartParts = sourcePath.nameParts(NPathExtensionType.SMART);
             target = parent.resolve(smartParts.getBaseName()
                     + (NBlankable.isBlank(version) ? "" : ("-" + version))
@@ -248,9 +248,9 @@ public class NoApiUtils {
 
     public static NPath addExtension(NPath source, String ext) {
         NPath path = source.normalize().toAbsolute();
-        String n = path.getName();
+        String n = path.name();
         n = NPath.of(n).nameParts(NPathExtensionType.SMART).getBaseName() + "." + ext;
-        return path.getParent().resolve(n);
+        return path.parent().resolve(n);
     }
 
     public static void writeAdoc(MdDocument md, NPath target, boolean keep, SupportedTargetType type) {
