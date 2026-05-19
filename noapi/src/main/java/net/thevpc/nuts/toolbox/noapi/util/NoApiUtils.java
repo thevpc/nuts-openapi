@@ -239,9 +239,9 @@ public class NoApiUtils {
         }
         if (NBlankable.isBlank(target) || target.name().equals(".pdf") || target.name().equals(".adoc") || target.name().equals(".json")) {
             NPathNameParts smartParts = sourcePath.nameParts(NPathExtensionType.SMART);
-            target = parent.resolve(smartParts.getBaseName()
+            target = parent.resolve(smartParts.baseName()
                     + (NBlankable.isBlank(version) ? "" : ("-" + version))
-                    + "." + smartParts.getExtension());
+                    + "." + smartParts.extension());
         }
         return NoApiUtils.addExtension(target, e);
     }
@@ -249,7 +249,7 @@ public class NoApiUtils {
     public static NPath addExtension(NPath source, String ext) {
         NPath path = source.normalize().toAbsolute();
         String n = path.name();
-        n = NPath.of(n).nameParts(NPathExtensionType.SMART).getBaseName() + "." + ext;
+        n = NPath.of(n).nameParts(NPathExtensionType.SMART).baseName() + "." + ext;
         return path.parent().resolve(n);
     }
 

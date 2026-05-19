@@ -68,7 +68,7 @@ public class NOpenAPIService {
         if (session.isPlainTrace()) {
             session.out().println(NMsg.ofC("read open-api file %s", sourcePath));
         }
-        String sourceBaseName = sourcePath.nameParts(NPathExtensionType.SMART).getBaseName();
+        String sourceBaseName = sourcePath.nameParts(NPathExtensionType.SMART).baseName();
         MStoreAndModel rmodel=new MStoreAndModel();
         if(sourcePath.name().endsWith(".tson")) {
             rmodel.store = new TsonStore();
@@ -105,7 +105,7 @@ public class NOpenAPIService {
         NPath targetPathObj = NoApiUtils.addExtension(sourcePath, rmodel.parentPath, NPath.of(target), rmodel.targetType, documentVersion);
 
         //start copying json file
-        NPath openApiFileCopy = targetPathObj.resolveSibling(targetPathObj.nameParts(NPathExtensionType.SMART).getBaseName() + "." + rmodel.sourcePath.nameParts(NPathExtensionType.SHORT).getExtension());
+        NPath openApiFileCopy = targetPathObj.resolveSibling(targetPathObj.nameParts(NPathExtensionType.SMART).baseName() + "." + rmodel.sourcePath.nameParts(NPathExtensionType.SHORT).extension());
         rmodel.sourcePath.copyTo(openApiFileCopy);
         if (session.isPlainTrace()) {
             session.out().println(NMsg.ofC("copy open-api file %s", openApiFileCopy));
@@ -151,13 +151,13 @@ public class NOpenAPIService {
         MConf confFile=mFileInfo.rmodel.store.loadConfigFile(cf);
         //remove version, will be added later
         NPathNameParts smartParts = cf.nameParts(NPathExtensionType.SMART);
-        NPath configFileCopy = targetPathObj.resolveSibling(smartParts.getBaseName() + mFileInfo.filePart + "-" + mFileInfo.rmodel.model.getVersion() + "." + smartParts.getExtension());
+        NPath configFileCopy = targetPathObj.resolveSibling(smartParts.baseName() + mFileInfo.filePart + "-" + mFileInfo.rmodel.model.getVersion() + "." + smartParts.extension());
         cf.copyTo(configFileCopy);
         if (session.isPlainTrace()) {
             session.out().println(NMsg.ofC("copy  config  file %s", configFileCopy));
         }
         NPath targetPathObj2 = NoApiUtils.addExtension(mFileInfo.rmodel.sourcePath, mFileInfo.rmodel.parentPath, NPath.of(mFileInfo.rmodel.target), mFileInfo.rmodel.targetType, "");
-        generateConfigDocument(mFileInfo, confFile, targetPathObj2.nameParts(NPathExtensionType.SMART).getBaseName(), targetPathObj.name());
+        generateConfigDocument(mFileInfo, confFile, targetPathObj2.nameParts(NPathExtensionType.SMART).baseName(), targetPathObj.name());
     }
 
     private void generateConfigDocument(MFileInfo mFileInfo, MConf configElements, String baseName, String apiFileName) {
