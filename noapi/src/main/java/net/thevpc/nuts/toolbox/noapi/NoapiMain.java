@@ -90,9 +90,9 @@ public class NoapiMain  {
                                 String vars = a.getStringValue().get();
                                 NArg b = NArg.of(vars);
                                 if (b.isUncommented()) {
-                                    ref.getVarsMap().put(b.getKey().toStringLiteral(), b.getValue().toStringLiteral());
+                                    ref.getVarsMap().put(b.getKey().toStringLiteral(), b.toLiteral().toStringLiteral());
                                     if (!data.isEmpty()) {
-                                        data.get(data.size() - 1).getVarsMap().put(b.getKey().toStringLiteral(), b.getValue().toStringLiteral());
+                                        data.get(data.size() - 1).getVarsMap().put(b.getKey().toStringLiteral(), b.toLiteral().toStringLiteral());
                                     }
                                 }
                             }
