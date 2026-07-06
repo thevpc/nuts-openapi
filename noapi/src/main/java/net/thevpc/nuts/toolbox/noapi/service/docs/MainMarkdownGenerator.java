@@ -174,9 +174,9 @@ public class MainMarkdownGenerator {
                 )
                 .addRows(
                         MdFactory.row().addCells(
-                                NoApiUtils.asText(NStringUtils.trim(contact.name)),
-                                NoApiUtils.asText(NStringUtils.trim(contact.email)),
-                                NoApiUtils.asText(NStringUtils.trim(contact.url))
+                                NoApiUtils.asText(NStringUtils.strip(contact.name)),
+                                NoApiUtils.asText(NStringUtils.strip(contact.email)),
+                                NoApiUtils.asText(NStringUtils.strip(contact.url))
                         )
                 ).build()
         );
@@ -208,10 +208,10 @@ public class MainMarkdownGenerator {
         all.add(changeLogTable.build());
         all.add(MdFactory.endParagraph());
         for (MChangeLog e : changeLogs) {
-            all.add(MdFactory.title(4, "VERSION " + NStringUtils.trim(e.version) + " : " + NStringUtils.trim(e.title)));
+            all.add(MdFactory.title(4, "VERSION " + NStringUtils.strip(e.version) + " : " + NStringUtils.strip(e.title)));
             all.add(MdFactory.endParagraph());
             all.add(NoApiUtils.asText(
-                    NStringUtils.trim(e.observations)
+                    NStringUtils.strip(e.observations)
             ));
             all.add(MdFactory.endParagraph());
             for (String item : e.details) {
@@ -237,7 +237,7 @@ public class MainMarkdownGenerator {
                     );
 
             for (MHeader item : headers) {
-                String k = NStringUtils.trim(item.name);
+                String k = NStringUtils.strip(item.name);
                 k = k + (item.deprecated ? (" [" + msg.get("DEPRECATED").get() + "]") : "");
                 k = k + requiredSuffix(item.required);
                 table.addRows(
@@ -567,8 +567,8 @@ public class MainMarkdownGenerator {
         String nsummary = NStringUtils.firstNonBlank(call.summary, path.summary);
         String ndescription = NStringUtils.firstNonBlank(call.description, path.description);
         all.add(MdFactory.endParagraph());
-        String method = NStringUtils.trim(call.method).toUpperCase();
-        String url = NStringUtils.trim(path.url);
+        String method = NStringUtils.strip(call.method).toUpperCase();
+        String url = NStringUtils.strip(path.url);
         all.add(MdFactory.title(3, method + " " + url));
         all.add(NoApiUtils.asText(nsummary));
         if (!NBlankable.isBlank(nsummary) && !nsummary.endsWith(".")) {
@@ -817,7 +817,7 @@ public class MainMarkdownGenerator {
     }
 
     private String userNameForContentType(String contentType) {
-        contentType=NStringUtils.trim(contentType);
+        contentType=NStringUtils.strip(contentType);
         switch (contentType) {
             case "application/json":{
                 return "JSON";

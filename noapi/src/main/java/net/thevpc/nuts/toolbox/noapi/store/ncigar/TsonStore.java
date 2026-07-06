@@ -200,7 +200,7 @@ public class TsonStore implements NoApiStore {
                                     }
                                 } else if (param.isNamedUplet()) {
                                     NUpletElement vu = param.asUplet().get();
-                                    h.typeName = NStringUtils.trim(vu.name().orNull());
+                                    h.typeName = NStringUtils.strip(vu.name().orNull());
                                     switch (h.typeName) {
                                         case "apiKey": {
                                             h.type = MSecurityScheme.Type.apiKey;
@@ -275,7 +275,7 @@ public class TsonStore implements NoApiStore {
                     case NAMED_UPLET: {
                         NUpletElement u = cc.asUplet().get();
                         MServer h = new MServer();
-                        h.name = NStringUtils.trim(u.name().orNull());
+                        h.name = NStringUtils.strip(u.name().orNull());
                         h.variables = new ArrayList<>();
                         all.add(h);
                         for (NElement oo : u.params()) {

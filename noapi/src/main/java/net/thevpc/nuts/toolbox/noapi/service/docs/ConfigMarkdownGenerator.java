@@ -84,7 +84,7 @@ public class ConfigMarkdownGenerator {
         all.add(MdFactory.endParagraph());
         all.add(MdFactory.title(2, msg.get("INTRODUCTION").get()));
         all.add(MdFactory.endParagraph());
-        all.add(NoApiUtils.asText(NStringUtils.firstNonNull(mFileInfo.rmodel.model.getConfigDescription(), "").trim()));
+        all.add(NoApiUtils.asText(NStringUtils.strip(NStringUtils.firstNonNull(mFileInfo.rmodel.model.getConfigDescription(), ""))));
         all.add(MdFactory.endParagraph());
         String targetName = confFile.targetName;
         all.add(NoApiUtils.asText(

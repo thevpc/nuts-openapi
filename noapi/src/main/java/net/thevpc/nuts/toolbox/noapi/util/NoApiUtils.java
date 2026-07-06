@@ -50,7 +50,7 @@ public class NoApiUtils {
     }
 
     public static MdElement asTextTrimmed(String text) {
-        return asText(NStringUtils.trim(text));
+        return asText(NStringUtils.strip(text));
     }
 
     public static MdElement asText(String text) {
@@ -175,7 +175,7 @@ public class NoApiUtils {
             return sb.toString();
         } else {
             String type = o.getUserType();
-            switch (NStringUtils.trim(o.getUserType())) {
+            switch (NStringUtils.strip(o.getUserType())) {
                 case "string":
                 case "enum": {
                     if (!NBlankable.isBlank(o.getMinLength()) && !NBlankable.isBlank(o.getMaxLength())) {

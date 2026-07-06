@@ -414,7 +414,7 @@ public class SwaggerStore implements NoApiStore {
             p.calls = new ArrayList<>();
             for (NElement sub : pair.value().asObject().get()) {
                 NPairElement v = sub.asPair().get();
-                switch (NStringUtils.trim(v.key().asStringValue().get()).toLowerCase()) {
+                switch (NStringUtils.strip(v.key().asStringValue().get()).toLowerCase()) {
                     case "enabled":
                     case "summary":
                     case "description":

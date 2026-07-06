@@ -27,7 +27,7 @@ public class Vars {
         if(a==null){
             return "";
         }
-        return NStringUtils.trim(NMsg.ofV(a, s -> m.get(s)).toString());
+        return NStringUtils.strip(NMsg.ofV(a, s -> m.get(s)).toString());
     }
 
     public String formatObject(Object a) {
@@ -40,7 +40,7 @@ public class Vars {
             }
             return format(((NElement) a).toString());
         }
-        return format(a.toString()).trim();
+        return NStringUtils.strip(format(a.toString()));
     }
 
     public String format(String a) {
