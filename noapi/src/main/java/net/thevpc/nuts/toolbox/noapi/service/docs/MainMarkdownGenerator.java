@@ -12,6 +12,7 @@ import net.thevpc.nuts.toolbox.noapi.util.NoApiUtils;
 import net.thevpc.nuts.toolbox.noapi.store.swagger.OpenApiParser;
 import net.thevpc.nuts.toolbox.noapi.util._StringUtils;
 import net.thevpc.nuts.toolbox.noapi.model.*;
+import net.thevpc.nuts.collections.NMaps;
 
 import java.io.InputStream;
 import java.time.LocalDate;
