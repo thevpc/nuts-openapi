@@ -137,8 +137,8 @@ public class TsonStore implements NoApiStore {
         if (components != null) {
             for (NElement cc : components) {
                 switch (cc.type()) {
-                    case NAMED_UPLET: {
-                        NUpletElement u = cc.asUplet().get();
+                    case NAMED_TUPLE: {
+                        NTupleElement u = cc.asTuple().get();
                         if (u.name().orElse("").equals("header")) {
                             MHeader h = new MHeader();
                             for (NElement param : u.params()) {
@@ -178,8 +178,8 @@ public class TsonStore implements NoApiStore {
         if (components != null) {
             for (NElement cc : components) {
                 switch (cc.type()) {
-                    case NAMED_UPLET: {
-                        NUpletElement u = cc.asUplet().get();
+                    case NAMED_TUPLE: {
+                        NTupleElement u = cc.asTuple().get();
                         if (u.name().orElse("").equals("securityScheme")) {
                             MSecurityScheme h = new MSecurityScheme();
                             all.add(h);
@@ -198,8 +198,8 @@ public class TsonStore implements NoApiStore {
                                             break;
                                         }
                                     }
-                                } else if (param.isNamedUplet()) {
-                                    NUpletElement vu = param.asUplet().get();
+                                } else if (param.isNamedTuple()) {
+                                    NTupleElement vu = param.asTuple().get();
                                     h.typeName = NStringUtils.strip(vu.name().orNull());
                                     switch (h.typeName) {
                                         case "apiKey": {
@@ -272,8 +272,8 @@ public class TsonStore implements NoApiStore {
         if (components != null) {
             for (NElement cc : components.children()) {
                 switch (cc.type()) {
-                    case NAMED_UPLET: {
-                        NUpletElement u = cc.asUplet().get();
+                    case NAMED_TUPLE: {
+                        NTupleElement u = cc.asTuple().get();
                         MServer h = new MServer();
                         h.name = NStringUtils.strip(u.name().orNull());
                         h.variables = new ArrayList<>();
@@ -488,8 +488,8 @@ public class TsonStore implements NoApiStore {
                                             }
                                         }
                                         if (bodyElement != null) {
-                                            for (NElement example : bodyElement.toObject().get().children().stream().filter(x -> x.isNamedUplet() && x.asUplet().get().name().orElse("").equals("example")).collect(Collectors.toList())) {
-                                                for (NElement p : example.asUplet().get().params()) {
+                                            for (NElement example : bodyElement.toObject().get().children().stream().filter(x -> x.isNamedTuple() && x.asTuple().get().name().orElse("").equals("example")).collect(Collectors.toList())) {
+                                                for (NElement p : example.asTuple().get().params()) {
                                                     f.examples.add(new MExample(
                                                             NStringUtils.firstNonBlank(resolveComments(p), resolveComments(example)),
                                                             p
@@ -499,10 +499,10 @@ public class TsonStore implements NoApiStore {
                                         }
                                         break;
                                     }
-                                    case NAMED_UPLET: {
-                                        NUpletElement uplet = param.asUplet().get();
-                                        if (uplet.isNamedUplet() && uplet.name().orElse("").equals("example") && uplet.params().size() > 0) {
-                                            for (NElement p : uplet.asUplet().get().params()) {
+                                    case NAMED_TUPLE: {
+                                        NTupleElement uplet = param.asTuple().get();
+                                        if (uplet.isNamedTuple() && uplet.name().orElse("").equals("example") && uplet.params().size() > 0) {
+                                            for (NElement p : uplet.asTuple().get().params()) {
                                                 h.examples.add(new MExample(
                                                         NStringUtils.firstNonBlank(resolveComments(p), resolveComments(uplet)),
                                                         p
