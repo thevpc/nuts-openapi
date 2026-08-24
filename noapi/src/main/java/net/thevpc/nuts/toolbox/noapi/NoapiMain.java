@@ -1,8 +1,8 @@
 package net.thevpc.nuts.toolbox.noapi;
 
+import net.thevpc.nuts.app.NApplication;
 import net.thevpc.nuts.app.NApp;
-import net.thevpc.nuts.app.NAppDefinition;
-import net.thevpc.nuts.app.NAppRunner;
+import net.thevpc.nuts.app.NAppRun;
 import net.thevpc.nuts.cmdline.NCmdLine;
 import net.thevpc.nuts.cmdline.NCmdLineRunner;
 import net.thevpc.nuts.cmdline.NArg;
@@ -19,7 +19,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 
-@NAppDefinition
+@NApp
 public class NoapiMain  {
 
     private NOpenAPIService service;
@@ -28,15 +28,15 @@ public class NoapiMain  {
     private List<NoapiCmdData> data = new ArrayList<>();
 
     public static void main(String[] args) {
-        NApp.builder(args).run();
+        NApplication.builder(args).run();
     }
 
-    @NAppRunner
+    @NAppRun
     public void run() {
         NSession session = NSession.of();
         this.service = new NOpenAPIService(session);
         ref.setCommand("pdf");
-        NApp.of().runCmdLine(new NCmdLineRunner() {
+        NApplication.of().runCmdLine(new NCmdLineRunner() {
             @Override
             public boolean next(NArg arg, NCmdLine cmdLine) {
                 if(arg.isOption()){
