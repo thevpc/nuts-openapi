@@ -129,4 +129,52 @@ public class Phase3ConvertTest {
         assertTrue("expected JSON, got: " + backJson.readString().substring(0, 1),
                 backJson.readString().trim().startsWith("{"));
     }
+
+    @Test
+    public void configDocumentRoundTrip() {
+        NPath dir = tmpDir();
+        NPath cfg = dir.resolve("myapp.config.json");
+        cfg.writeString("{\n"
+                + "  \"openapi-config\": \"3.0.0\",\n"
+                + "  \"target-name\": \"Assurances BIAT\",\n"
+                + "  \"target-id\": \"assurances-biat\",\n"
+                + "  \"version\": \"1.4-20230215\",\n"
+                + "  \"openapi-document-id\": \"digiclaim-api\",\n"
+                + "  \"variables\": {\n"
+                + "    \"server-prod-url\": {\"value\": \"https://example.com/rest-auth/api\", \"observations\": \"\"},\n"
+                + "    \"company-api-key\": {\"value\": \"abc\", \"observations\": \"rotate yearly\"}\n"
+                + "  }\n"
+                + "}");
+        NPath tson = dir.resolve("myapp.config.tson");
+        NoapiConvertCommand.Result r = NoapiConvertCommand.run(new NoapiConvertCommand.Options()
+                .setInput(cfg.toString()).setOutput(tson.toString()).setTo(NoApiFormat.TSON));
+        assertTrue("config should condense: " + r.note(), r.condensed());
+
+        NPath back = dir.resolve("myapp2.config.json");
+        NoapiConvertCommand.run(new NoapiConvertCommand.Options()
+                .setInput(tson.toString()).setOutput(back.toString()).setTo(NoApiFormat.JSON));
+
+        NElement m1 = NoApiConversion.readModel(cfg, NoApiFormat.JSON, NoApiConversion.Kind.CONFIG);
+        NElement m2 = NoApiConversion.readModel(back, NoApiFormat.JSON, NoApiConversion.Kind.CONFIG);
+        String diff = NoApiTreeComparator.diff(m1, m2, "$");
+        org.junit.Assert.assertNull("diff: " + diff, diff);
+    }
+
+    @Test
+    public void quotedSchemaNameCondensesViaPairForm() {
+        // a schema name that is not a bare identifier is written as `"name": object { ... }`
+        NPath dir = tmpDir();
+        NPath json = dir.resolve("api.json");
+        json.writeString("{\n"
+                + "  \"openapi\": \"3.0.0\",\n"
+                + "  \"info\": {\"title\": \"t\", \"version\": \"1\"},\n"
+                + "  \"components\": {\"schemas\": {\"my-schema\": {\"type\": \"object\", \"properties\": {\"a\": {\"type\": \"string\"}}}}}\n"
+                + "}");
+        NElement model = NoApiConversion.readModel(json, NoApiFormat.JSON, NoApiConversion.Kind.API);
+        NoApiConversion.Result r = NoApiConversion.toTson(model, NoApiConversion.Kind.API, true);
+        assertTrue("should condense: " + r.note(), r.condensed());
+        NElement back = NoApiConversion.readModelString(r.text(), NoApiFormat.TSON, NoApiConversion.Kind.API);
+        String diff = NoApiTreeComparator.diff(model, back, "$");
+        org.junit.Assert.assertNull("diff: " + diff, diff);
+    }
 }

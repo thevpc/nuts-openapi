@@ -189,6 +189,11 @@ public class CondensedTsonWriter {
             String name = Tson.nameOf(nameEl);
             NElement scopes = Tson.valueOf(nameEl);
             List<NElement> sc = Tson.members(scopes);
+            if (!isBareKey(name) && !sc.isEmpty()) {
+                // quoted names cannot be used as a tuple head
+                line(plainValue(it, indent) + ",");
+                continue;
+            }
             if (sc.isEmpty()) {
                 line(key(name) + ",");
             } else {
@@ -331,6 +336,9 @@ public class CondensedTsonWriter {
         NElement nameEl = Tson.members(o).get(0);
         String name = Tson.nameOf(nameEl);
         List<NElement> sc = Tson.members(Tson.valueOf(nameEl));
+        if (!isBareKey(name) && !sc.isEmpty()) {
+            return plainValue(it, indent);
+        }
         if (sc.isEmpty()) {
             return key(name);
         }
@@ -547,7 +555,7 @@ public class CondensedTsonWriter {
             return;
         }
         if (isRawSchema(o)) {
-            line("@raw " + key(name) + " " + plainValue(schema, indent));
+            line("@raw " + key(name) + ": " + plainValue(schema, indent));
             return;
         }
         NElement desc = o.get("description").orNull();
@@ -565,7 +573,7 @@ public class CondensedTsonWriter {
         } else if (o.get("$ref").isPresent()) {
             line(key(name) + ": " + refName(o));
         } else {
-            line("@raw " + key(name) + " " + plainValue(schema, indent));
+            line("@raw " + key(name) + ": " + plainValue(schema, indent));
         }
     }
 
@@ -863,8 +871,10 @@ public class CondensedTsonWriter {
                     NObjectElement vo = Tson.valueOf(vm).asObject().orNull();
                     if (vo != null && isSimpleVariable(vo)) {
                         line(key(vn) + ": " + scalar(vo.get("value").orNull()));
+                    } else if (isBareKey(vn)) {
+                        line(vn + " " + plainValue(Tson.valueOf(vm), indent));
                     } else {
-                        line(key(vn) + " " + plainValue(Tson.valueOf(vm), indent));
+                        line(key(vn) + ": " + plainValue(Tson.valueOf(vm), indent));
                     }
                 }
                 indent--;
@@ -890,7 +900,13 @@ public class CondensedTsonWriter {
     // ------------------------------------------------------------------ plain / verbatim
 
     private void writeNamedPlain(String name, NElement v) {
-        line(key(name) + " " + plainValue(v, indent));
+        // A quoted name cannot be used as a TSON head (the Nuts parser splits
+        // `"name" { ... }` into a bare string plus an unnamed object), so fall back to a pair.
+        if (isBareKey(name)) {
+            line(name + " " + plainValue(v, indent));
+        } else {
+            line(key(name) + ": " + plainValue(v, indent));
+        }
     }
 
     private void writePlainMember(String name, NElement v) {
@@ -939,11 +955,16 @@ public class CondensedTsonWriter {
         return scalar(e);
     }
 
+    private boolean isBareKey(String k) {
+        return k != null && k.matches("[A-Za-z_][A-Za-z0-9_]*")
+                && !"true".equals(k) && !"false".equals(k) && !"null".equals(k);
+    }
+
     private String key(String k) {
         if (k == null) {
             return "\"\"";
         }
-        if (k.matches("[A-Za-z_][A-Za-z0-9_]*") && !"true".equals(k) && !"false".equals(k) && !"null".equals(k)) {
+        if (isBareKey(k)) {
             return k;
         }
         return scalar(NElement.ofString(k));

@@ -343,5 +343,11 @@ Everything else must be identical, including key order of `properties`, `paths`,
   single unsupported construct causes the whole file to be plain.
 - **`changes` entries** are emitted as plain objects rather than a dedicated condensed form. This is
   valid condensed TSON and round-trips.
+- **Quoted names are never used as heads.** The Nuts TSON parser cannot parse a quoted name followed
+  by a body or parameter list: `"company-api-key" { … }` is read as a bare string plus an unnamed
+  object. The writer therefore emits `key: value` (pair form) whenever a name needs quoting, e.g.
+  `"company-api-key": { value: "abc" }`, and reserves the head form (`name { … }`) for bare
+  identifier names. All names in the samples are either bare or already in pair position, so this is
+  invisible for them.
 - **Media types other than `application/json`** are emitted with a quoted literal media type when a
   shorthand does not exist.

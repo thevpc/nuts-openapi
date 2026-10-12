@@ -55,6 +55,8 @@ unannotated members should default to body.
   dropped by canonicalization C1).
 - **Operations `parameters`** are emitted as plain parameter objects inside `parameters [ … ]`
   (the condensed per-parameter form is accepted on input but not produced).
+- **Quoted names cannot be used as heads** (Nuts parser limitation): the writer falls back to the
+  pair form for any name that is not a bare identifier.
 - **YAML round trips** are not possible on Nuts 1.1.0 (reader limitation); see
   [yaml-limitations.md](yaml-limitations.md).
 - No line/column information in diagnostics.
