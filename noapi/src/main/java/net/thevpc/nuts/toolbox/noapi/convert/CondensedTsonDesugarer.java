@@ -216,13 +216,15 @@ public class CondensedTsonDesugarer {
         NArrayElementBuilder r = Tson.arr();
         for (NElement item : arr.children()) {
             NObjectElement o = item.asObject().orNull();
-            if (o != null && Tson.isHeaded(item) && "url".equals(Tson.nameOf(item))) {
+            if ("url".equals(headOf(item))) {
                 List<NElement> params = Tson.paramsOf(item);
                 NElement url = params.isEmpty() ? Tson.str("") : params.get(0);
                 NObjectElementBuilder s = Tson.obj();
                 s.add("url", url);
-                for (NElement m : Tson.members(o)) {
-                    s.add(Tson.nameOf(m), Tson.valueOf(m));
+                if (o != null) {
+                    for (NElement m : Tson.members(o)) {
+                        s.add(Tson.nameOf(m), Tson.valueOf(m));
+                    }
                 }
                 r.add(s.build());
             } else {
@@ -956,7 +958,7 @@ public class CondensedTsonDesugarer {
     private NElement desugarSecurityScheme(NElement member, String path) {
         NElement value = Tson.valueOf(member);
         NObjectElement vo = value.asObject().orNull();
-        String head = Tson.isHeaded(value) ? Tson.nameOf(value) : null;
+        String head = headOf(value);
         NObjectElementBuilder b = Tson.obj();
         if (head == null || ("http".equals(head) == false && "apiKey".equals(head) == false
                 && "openIdConnect".equals(head) == false && "oauth2".equals(head) == false)) {
@@ -1029,7 +1031,7 @@ public class CondensedTsonDesugarer {
             String name = Tson.nameOf(m);
             NElement v = Tson.valueOf(m);
             NObjectElement vo = v.asObject().orNull();
-            String head = Tson.isHeaded(v) ? Tson.nameOf(v) : null;
+            String head = headOf(v);
             if (head == null || !Tson.isPrimitive(head)) {
                 // plain header
                 r.add(name, Tson.unnamed(v));
@@ -1066,6 +1068,21 @@ public class CondensedTsonDesugarer {
     }
 
     // ------------------------------------------------------------------ utils
+
+    /**
+     * Head name of a value that is written with a head: {@code name { … }}, {@code name […]} or
+     * {@code name(…)}. The Nuts parser represents a head with only parameters (no body) as a named
+     * tuple rather than a named object, so both must be considered.
+     */
+    private String headOf(NElement v) {
+        if (v == null) {
+            return null;
+        }
+        if (v.asObject().isPresent() || v.asArray().isPresent() || v.asTuple().isPresent()) {
+            return Tson.nameOf(v);
+        }
+        return null;
+    }
 
     private String firstPositional(List<NElement> params) {
         for (NElement p : params) {

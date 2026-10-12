@@ -14,6 +14,12 @@ public class NoapiCmdData {
     private boolean openAPI;
     private boolean keep;
     private OpenAPIFormat openAPIFormat;
+    private String from;
+    private String to;
+    private String kind;
+    private boolean condensed = true;
+    private boolean force;
+    private String output;
 
     public String getCommand() {
         return command;
@@ -84,6 +90,60 @@ public class NoapiCmdData {
 
     public NoapiCmdData setOpenAPIFormat(OpenAPIFormat openAPIFormat) {
         this.openAPIFormat = openAPIFormat;
+        return this;
+    }
+
+    public String getFrom() {
+        return from;
+    }
+
+    public NoapiCmdData setFrom(String from) {
+        this.from = from;
+        return this;
+    }
+
+    public String getTo() {
+        return to;
+    }
+
+    public NoapiCmdData setTo(String to) {
+        this.to = to;
+        return this;
+    }
+
+    public String getKind() {
+        return kind;
+    }
+
+    public NoapiCmdData setKind(String kind) {
+        this.kind = kind;
+        return this;
+    }
+
+    public boolean isCondensed() {
+        return condensed;
+    }
+
+    public NoapiCmdData setCondensed(boolean condensed) {
+        this.condensed = condensed;
+        return this;
+    }
+
+    public boolean isForce() {
+        return force;
+    }
+
+    public NoapiCmdData setForce(boolean force) {
+        this.force = force;
+        return this;
+    }
+
+    public String getOutput() {
+        return output;
+    }
+
+    public NoapiCmdData setOutput(String output) {
+        this.output = output;
         return this;
     }
 }

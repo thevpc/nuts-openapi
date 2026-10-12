@@ -103,6 +103,19 @@ public final class Tson {
         return Collections.emptyList();
     }
 
+    /** The member of {@code container} whose name equals {@code name}, or {@code null}. */
+    public static NElement member(NElement container, String name) {
+        if (container == null || name == null) {
+            return null;
+        }
+        for (NElement m : members(container)) {
+            if (name.equals(nameOf(m))) {
+                return m;
+            }
+        }
+        return null;
+    }
+
     /** Name of a member (pair key name or named-container name). */
     public static String nameOf(NElement e) {
         if (e == null) {

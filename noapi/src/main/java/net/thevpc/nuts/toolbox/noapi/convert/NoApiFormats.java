@@ -6,7 +6,6 @@ import net.thevpc.nuts.elem.NElementType;
 import net.thevpc.nuts.elem.NElementWriter;
 import net.thevpc.nuts.elem.NObjectElementBuilder;
 import net.thevpc.nuts.io.NPath;
-import net.thevpc.nuts.text.NContentType;
 import net.thevpc.nuts.util.NIllegalArgumentException;
 import net.thevpc.nuts.text.NMsg;
 
@@ -160,7 +159,7 @@ public final class NoApiFormats {
             case JSON:
                 return compact
                         ? NElementWriter.ofJson().compact(true).formatPlain(root)
-                        : root.normalize(NContentType.JSON).toPrettyString();
+                        : NElementWriter.ofJson().formatPlain(root);
             case YAML:
                 return compact
                         ? NElementWriter.ofPlainYaml().compact(true).formatPlain(root)
