@@ -14,6 +14,8 @@ import net.thevpc.nuts.toolbox.noapi.model.SupportedTargetType;
 import net.thevpc.nuts.toolbox.noapi.model.OpenAPIFormat;
 import net.thevpc.nuts.toolbox.noapi.convert.NoApiFormat;
 import net.thevpc.nuts.toolbox.noapi.convert.NoApiFormats;
+import net.thevpc.nuts.toolbox.noapi.convert.CondensedTsonDesugarer;
+import net.thevpc.nuts.toolbox.noapi.convert.NoApiDiagnostics;
 import net.thevpc.nuts.toolbox.noapi.store.swagger.SwaggerStore;
 import net.thevpc.nuts.toolbox.noapi.util.AppMessages;
 import net.thevpc.nuts.toolbox.noapi.util.NoApiUtils;
@@ -77,7 +79,7 @@ public class NOpenAPIService {
         String sourceBaseName = sourcePath.nameParts(NPathExtensionType.SMART).baseName();
         MStoreAndModel rmodel=new MStoreAndModel();
         NoApiFormat format = NoApiFormats.detect(sourcePath, NoApiFormat.of(formatOverride));
-        NElement sourceElement = NoApiFormats.read(sourcePath, format);
+        NElement sourceElement = readApi(sourcePath, format);
         rmodel.format = format;
         rmodel.store = new SwaggerStore();
         rmodel.model = rmodel.store.loadStoreModel(sourceElement);
@@ -128,6 +130,32 @@ public class NOpenAPIService {
         }
     }
 
+    /**
+     * Reads an OpenAPI document in the given format into a single {@link NElement} pivot. TSON
+     * input is passed through the condensed desugarer so both the condensed dialect and plain
+     * TSON are accepted; JSON/YAML are read as-is.
+     */
+    public static NElement readApi(NPath sourcePath, NoApiFormat format) {
+        NElement element = NoApiFormats.read(sourcePath, format);
+        if (format == NoApiFormat.TSON) {
+            NoApiDiagnostics diagnostics = new NoApiDiagnostics(sourcePath.name());
+            element = new CondensedTsonDesugarer(diagnostics).desugar(element);
+        }
+        return element;
+    }
+
+    /**
+     * Reads a NoAPI config document into a single {@link NElement} pivot.
+     */
+    public static NElement readConfig(NPath configPath, NoApiFormat format) {
+        NElement element = NoApiFormats.read(configPath, format);
+        if (format == NoApiFormat.TSON) {
+            NoApiDiagnostics diagnostics = new NoApiDiagnostics(configPath.name());
+            element = new CondensedTsonDesugarer(diagnostics).desugarConfig(element);
+        }
+        return element;
+    }
+
     private List<NPath> searchConfigPaths(NPath sourceFolder, String sourceBaseName) {
         return sourceFolder.stream().filter(
                 (NPath x) ->
@@ -152,7 +180,7 @@ public class NOpenAPIService {
 
     private void generateConfigDocumentFromFile(MFileInfo mFileInfo, NPath cf, NPath targetPathObj) {
         NoApiFormat configFormat = NoApiFormats.detect(cf, null);
-        NElement confElement = NoApiFormats.read(cf, configFormat);
+        NElement confElement = readConfig(cf, configFormat);
         MConf confFile = mFileInfo.rmodel.store.loadConfigFile(confElement);
         //remove version, will be added later
         NPathNameParts smartParts = cf.nameParts(NPathExtensionType.SMART);

@@ -4,6 +4,7 @@ import net.thevpc.nuts.elem.NElement;
 import net.thevpc.nuts.elem.NElementReader;
 import net.thevpc.nuts.elem.NElementType;
 import net.thevpc.nuts.elem.NElementWriter;
+import net.thevpc.nuts.elem.NObjectElementBuilder;
 import net.thevpc.nuts.io.NPath;
 import net.thevpc.nuts.text.NContentType;
 import net.thevpc.nuts.util.NIllegalArgumentException;
@@ -138,6 +139,14 @@ public final class NoApiFormats {
         }
         if (e.type() == NElementType.FRAGMENT) {
             return e.wrapIntoObject();
+        }
+        // A top-level named container (`paths { … }`, `components { … }`, `security [ … ]`) is a
+        // single document member, not the document itself. Wrap it so it has the same shape as a
+        // JSON/YAML document (a plain object whose keys are the document members).
+        if (e.isNamed() && !e.isPair() && (e.asObject().isPresent() || e.asArray().isPresent())) {
+            NObjectElementBuilder b = NObjectElementBuilder.of();
+            b.add(Tson.nameOf(e), Tson.unnamed(e));
+            return b.build();
         }
         return e;
     }
