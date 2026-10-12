@@ -1,6 +1,7 @@
 package net.thevpc.nuts.toolbox.noapi.service;
 
 import net.thevpc.nuts.io.NPath;
+import net.thevpc.nuts.toolbox.noapi.convert.NoApiFormat;
 import net.thevpc.nuts.toolbox.noapi.model.MStoreModel;
 import net.thevpc.nuts.toolbox.noapi.model.SupportedTargetType;
 import net.thevpc.nuts.toolbox.noapi.service.docs.MainMarkdownGenerator;
@@ -19,4 +20,5 @@ public class MStoreAndModel {
     public NPath parentPath;
     public String target;
     public boolean keep;
+    public NoApiFormat format = NoApiFormat.AUTO;
 }

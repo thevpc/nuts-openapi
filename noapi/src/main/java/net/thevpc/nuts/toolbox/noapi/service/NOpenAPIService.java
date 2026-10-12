@@ -11,8 +11,10 @@ import net.thevpc.nuts.toolbox.noapi.model.MConf;
 import net.thevpc.nuts.toolbox.noapi.service.docs.ConfigMarkdownGenerator;
 import net.thevpc.nuts.toolbox.noapi.service.docs.MainMarkdownGenerator;
 import net.thevpc.nuts.toolbox.noapi.model.SupportedTargetType;
+import net.thevpc.nuts.toolbox.noapi.model.OpenAPIFormat;
+import net.thevpc.nuts.toolbox.noapi.convert.NoApiFormat;
+import net.thevpc.nuts.toolbox.noapi.convert.NoApiFormats;
 import net.thevpc.nuts.toolbox.noapi.store.swagger.SwaggerStore;
-import net.thevpc.nuts.toolbox.noapi.store.ncigar.TsonStore;
 import net.thevpc.nuts.toolbox.noapi.util.AppMessages;
 import net.thevpc.nuts.toolbox.noapi.util.NoApiUtils;
 import net.thevpc.nuts.util.NBlankable;
@@ -63,6 +65,10 @@ public class NOpenAPIService {
     }
 
     public void run(String source, String target, String varsPath, Map<String, String> varsMap, boolean keep) {
+        run(source, target, varsPath, varsMap, keep, null);
+    }
+
+    public void run(String source, String target, String varsPath, Map<String, String> varsMap, boolean keep, OpenAPIFormat formatOverride) {
 
         NPath sourcePath = resolvePath(source);
         if (session.isPlainTrace()) {
@@ -70,14 +76,11 @@ public class NOpenAPIService {
         }
         String sourceBaseName = sourcePath.nameParts(NPathExtensionType.SMART).baseName();
         MStoreAndModel rmodel=new MStoreAndModel();
-        if(sourcePath.name().endsWith(".tson")) {
-            rmodel.store = new TsonStore();
-        }else if(sourcePath.name().endsWith(".json") || sourcePath.name().endsWith(".yaml")) {
-            rmodel.store=new SwaggerStore();
-        }else{
-            throw new IllegalArgumentException("Unsupported file type: " + sourcePath);
-        }
-        rmodel.model=rmodel.store.loadStoreModel(sourcePath);
+        NoApiFormat format = NoApiFormats.detect(sourcePath, NoApiFormat.of(formatOverride));
+        NElement sourceElement = NoApiFormats.read(sourcePath, format);
+        rmodel.format = format;
+        rmodel.store = new SwaggerStore();
+        rmodel.model = rmodel.store.loadStoreModel(sourceElement);
         rmodel.keep=keep;
         rmodel.sourcePath=sourcePath;
         rmodel.target=target;
@@ -148,7 +151,9 @@ public class NOpenAPIService {
     }
 
     private void generateConfigDocumentFromFile(MFileInfo mFileInfo, NPath cf, NPath targetPathObj) {
-        MConf confFile=mFileInfo.rmodel.store.loadConfigFile(cf);
+        NoApiFormat configFormat = NoApiFormats.detect(cf, null);
+        NElement confElement = NoApiFormats.read(cf, configFormat);
+        MConf confFile = mFileInfo.rmodel.store.loadConfigFile(confElement);
         //remove version, will be added later
         NPathNameParts smartParts = cf.nameParts(NPathExtensionType.SMART);
         NPath configFileCopy = targetPathObj.resolveSibling(smartParts.baseName() + mFileInfo.filePart + "-" + mFileInfo.rmodel.model.getVersion() + "." + smartParts.extension());

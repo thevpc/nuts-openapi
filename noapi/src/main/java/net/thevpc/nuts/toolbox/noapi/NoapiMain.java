@@ -143,7 +143,7 @@ public class NoapiMain {
             switch (d.getCommand()) {
                 case "pdf": {
                     NOpenAPIService service = new NOpenAPIService(session);
-                    service.run(d.getPath(), d.getTarget(), d.getVars(), d.getVarsMap(), d.isKeep());
+                    service.run(d.getPath(), d.getTarget(), d.getVars(), d.getVarsMap(), d.isKeep(), d.getOpenAPIFormat());
                     break;
                 }
             }

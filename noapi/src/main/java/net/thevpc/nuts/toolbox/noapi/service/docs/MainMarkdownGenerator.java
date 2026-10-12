@@ -463,7 +463,15 @@ public class MainMarkdownGenerator {
         all.add(MdFactory.endParagraph());
         all.add(MdFactory.title(2, msg.get("API_PATHS").get()));
         List<MPath> paths = rmodel.model.getPaths();
-        paths = paths.stream().filter(x -> rmodel.templater.evalBoolean(x.enabled, true)).collect(Collectors.toList());
+        // Operation-level 'enabled' (condensed TSON) and legacy path-level 'enabled' (JSON/YAML).
+        // Path-level 'enabled' was already propagated to each call when the model was built, so
+        // filtering the calls and dropping empty paths gives identical behaviour for both layouts.
+        paths = paths.stream().map(x -> {
+            x.calls = x.calls.stream()
+                    .filter(c -> rmodel.templater.evalBoolean(c.enabled, true))
+                    .collect(Collectors.toList());
+            return x;
+        }).filter(x -> !x.calls.isEmpty()).collect(Collectors.toList());
         int apiSize = paths.size();
         all.add(NoApiUtils.asText(NMsg.ofV(msg.get("API_PATHS.body").get(), NMaps.of("apiSize", apiSize)).toString()));
         all.add(MdFactory.endParagraph());

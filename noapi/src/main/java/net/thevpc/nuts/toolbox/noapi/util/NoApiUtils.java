@@ -34,6 +34,8 @@ public class NoApiUtils {
         if (
                 (text.endsWith(".json") && !text.endsWith(".config.json"))
                         || (text.endsWith(".tson") && !text.endsWith(".config.tson"))
+                        || (text.endsWith(".yaml") && !text.endsWith(".config.yaml"))
+                        || (text.endsWith(".yml") && !text.endsWith(".config.yml"))
         ) {
             return true;
         }
@@ -45,6 +47,12 @@ public class NoApiUtils {
             return true;
         }
         if (text.endsWith(".config.tson")) {
+            return true;
+        }
+        if (text.endsWith(".config.yaml")) {
+            return true;
+        }
+        if (text.endsWith(".config.yml")) {
             return true;
         }
         return false;
@@ -82,29 +90,8 @@ public class NoApiUtils {
     }
 
     public static NElement loadElement(NPath source, NSession session) {
-        boolean json = false;
-//        Path sourcePath = Paths.get(source).normalize().toAbsolutePath();
-        try (BufferedReader r = new BufferedReader(new InputStreamReader(source.inputStream()))) {
-            String t;
-            while ((t = r.readLine()) != null) {
-                t = t.trim();
-                if (t.length() > 0) {
-                    if (t.startsWith("{")) {
-                        json = true;
-                    }
-                    break;
-                }
-            }
-        } catch (IOException ex) {
-            throw new UncheckedIOException(ex);
-        }
-
-        if (json) {
-            return NElementReader.ofJson().read(source, NElement.class);
-        } else {
-//            return NElementParser.ofJson().parse(inputStream, NutsElement.class);
-            return NElementReader.ofYaml().read(source);
-        }
+        return net.thevpc.nuts.toolbox.noapi.convert.NoApiFormats.read(source,
+                net.thevpc.nuts.toolbox.noapi.convert.NoApiFormats.detect(source, null));
     }
 
     public static MdElement codeElementTypeInfo(TypeInfo type, boolean includeDesc,String extra,AppMessages msg) {

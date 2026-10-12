@@ -16,30 +16,7 @@ import java.util.stream.Collectors;
 public class SwaggerStore implements NoApiStore {
 
     @Override
-    public MStoreModel loadStoreModel(NPath source) {
-        boolean json = false;
-//        Path sourcePath = Paths.get(source).normalize().toAbsolutePath();
-        try (BufferedReader r = new BufferedReader(new InputStreamReader(source.inputStream()))) {
-            String t;
-            while ((t = r.readLine()) != null) {
-                t = t.trim();
-                if (t.length() > 0) {
-                    if (t.startsWith("{")) {
-                        json = true;
-                    }
-                    break;
-                }
-            }
-        } catch (IOException ex) {
-            throw new UncheckedIOException(ex);
-        }
-        NElement apiElement;
-        if (json) {
-            apiElement = NElementReader.ofJson().read(source, NElement.class);
-        } else {
-//            return NElementParser.ofJson().parse(inputStream, NutsElement.class);
-            apiElement = NElementReader.ofYaml().read(source);
-        }
+    public MStoreModel loadStoreModel(NElement apiElement) {
         List<TypeCrossRef> typeCrossRefs = new ArrayList<>();
         MStoreModel mStoreModel = new MStoreModel();
         mStoreModel.setTitle(getTitle(apiElement).orNull());
@@ -62,13 +39,15 @@ public class SwaggerStore implements NoApiStore {
     }
 
 
-    public MConf loadConfigFile(NPath cf) {
-        NObjectElement obj = NElementReader.ofJson().read(cf).asObject().get();
+    @Override
+    public MConf loadConfigFile(NElement root) {
+        NObjectElement obj = root.asObject().get();
         MConf c = new MConf();
-        c.targetName = obj.getStringValue("target-name").get();
-        c.targetId = obj.getStringValue("target-id").get();
-        c.documentId = obj.getStringValue("openapi-document-id").get();
-        c.version = obj.getStringValue("observations").orElse("");
+        c.targetName = obj.getStringValue("target-name").orElse("");
+        c.targetId = obj.getStringValue("target-id").orElse("");
+        c.documentId = obj.getStringValue("openapi-document-id").orElse("");
+        c.version = obj.getStringValue("version").orElse("");
+        c.observations = obj.getStringValue("observations").orElse("");
         c.variables = new ArrayList<>();
         for (NPairElement srv : obj.getObjectByPath("variables").orElse(NObjectElement.ofEmpty()).pairs()) {
             String id = srv.key().asStringValue().get();
@@ -438,6 +417,9 @@ public class SwaggerStore implements NoApiStore {
                                 apiElement,
                                 typeCrossRefs
                         );
+                        if (call.enabled == null) {
+                            call.enabled = p.enabled;
+                        }
                         p.calls.add(call);
                         break;
                     }
@@ -458,6 +440,7 @@ public class SwaggerStore implements NoApiStore {
         cc.method = method;
         cc.summary = call.getStringValue("summary").orNull();
         cc.description = call.getStringValue("description").orNull();
+        cc.enabled = call.getStringValue("enabled").orNull();
         NArrayElement parameters = call.getArray("parameters")
                 .orElseGet(() -> NArrayElementBuilder.of().build());
 

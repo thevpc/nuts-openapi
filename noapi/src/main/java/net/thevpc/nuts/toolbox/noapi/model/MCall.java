@@ -7,6 +7,11 @@ public class MCall {
     public String method;
     public String summary;
     public String description;
+    /**
+     * Operation-level {@code enabled} extension (used by the condensed TSON form, where a
+     * path-level {@code enabled} is pushed down to each operation). {@code null} when absent.
+     */
+    public String enabled;
     public List<MParam> headerParameters;
     public List<MParam> queryParameters;
     public List<MParam> pathParameters;
