@@ -47,6 +47,7 @@ custom {
 }
 ```
 - Always placed right after info
+- In the condensed TSON dialect the writer does **not** emit a `custom` section (use `info.id` instead)
 - Omitted when empty
 - `custom.description` redundant if same as info.description
 

@@ -1,0 +1,245 @@
+@openapi("3.0.0")
+
+info {
+  id: ftusa-api
+  title: "FTUSA API"
+  version: "1.0.0"
+  description: "Entry point of the FTUSA extranet platform. It authenticates extranet clients, then resolves the insurance status of a vehicle by querying the insurers subscribed to the FTUSA contract and consolidating their answers into one normalised response. Each operation ships with its request, its responses and a full example."
+  contact: { name: "Avidea - FTUSA integration support", email: "support@avidea.com", url: "https://extranet.ftusanet.org/api" }
+  changes [{
+    date: "2026-10-10", version: "1.0.0"
+    title: "First release of the vehicle insurance resolution API"
+    observations: "Exposes client authentication and vehicle insurance resolution, with an answer that is normalised whichever insurers replied."
+    details: [
+      "ADDED: POST /auth/login, issues the JWT access token required by the other operations"
+      "ADDED: POST /vehicle/status, resolves the insurance status of a vehicle from its registration plate"
+    ]
+  }]
+}
+
+servers [
+  url("https://extranet.ftusanet.org/api", description: "Default server of the FTUSA extranet platform; every path in this document is relative to this base URL.")
+]
+
+tags [
+  { name: "Authentication", description: "Operations that authenticate extranet clients and issue their access tokens." }
+  { name: "Vehicles", description: "Operations that resolve the insurance status of a vehicle." }
+]
+
+components {
+  securitySchemes {
+    ApiKeyAuth: apiKey(header: X-API-Key, description: "The extranet client key, sent in the 'X-API-Key' header. Applies to every operation unless the operation declares its own security.")
+    JWTAuth: http(bearer, bearerFormat: JWT, description: "JWT obtained from POST /auth/login, sent as 'Authorization: Bearer <token>'.")
+  }
+
+  headers {
+    @required X-API-Key: string(description: "Key identifying the extranet client; must accompany every request.")
+  }
+
+  schemas {
+    LoginRequest(
+      description: "Credentials an extranet client exchanges for access tokens."
+      example: { username: "extranet-client", password: "s3cr3t-p4ssw0rd" }
+    ) {
+      @required username: string(
+        description: "Login of the extranet client, as registered on the FTUSA extranet portal."
+        minLength: 3, maxLength: 64
+        example: "partner-ops"
+      )
+      @required password: string(
+        description: "Password of the extranet client. Sent over TLS only and never to be logged."
+        format: password
+        minLength: 8, maxLength: 128
+        example: "Ch4nge-me-2026"
+      )
+    }
+
+    LoginResponseSuccess(
+      description: "Envelope returned after a successful authentication."
+      example: {
+        success: true
+        apiVersion: "1.0.0"
+        data: {
+          accessToken: "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJleHRyYW5ldC1jbGllbnQifQ.sigA1"
+          refreshToken: "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJleHRyYW5ldC1jbGllbnQifQ.sigR1"
+        }
+      }
+    ) {
+      @required success: boolean(description: "Constant true: the client is authenticated.", example: true)
+      @required apiVersion: string(description: "API version that built this answer (e.g. 1.0.0), so a client can detect a mismatch.", example: "1.0.0")
+      @required data: LoginResponse(description: "Tokens issued to the authenticated client.")
+    }
+
+    LoginResponse(
+      description: "Pair of tokens issued to an authenticated extranet client."
+      example: {
+        accessToken: "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJleHRyYW5ldC1jbGllbnQifQ.sigA2"
+        refreshToken: "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJleHRyYW5ldC1jbGllbnQifQ.sigR2"
+      }
+    ) {
+      @required accessToken: string(
+        description: "Short-lived JWT, sent as 'Authorization: Bearer <token>' on the other requests."
+        example: "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJleHRyYW5ldC1jbGllbnQifQ.sigA3"
+      )
+      @required refreshToken: string(
+        description: "Long-lived JWT, exchanged for a new access token once the current one has expired."
+        example: "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJleHRyYW5ldC1jbGllbnQifQ.sigR3"
+      )
+    }
+
+    ErrorResponse(
+      description: "Error payload returned when a request cannot be fulfilled. 'error' is stable and machine readable: InvalidCredentials (wrong login or password), Unauthorized (API key or token missing or invalid), InvalidPlate (plate not in CGA format), UpstreamTimeout (no insurer replied in time), InternalError (unexpected server failure)."
+      example: { success: false, apiVersion: "1.0.0", error: "InvalidCredentials", details: "Invalid login or password" }
+    ) {
+      @required success: boolean(description: "Constant false: the payload describes a failure.", example: false)
+      @required apiVersion: string(description: "API version that built this answer (e.g. 1.0.0); lets a caller spot an answer from another version.", example: "1.0.0")
+      @required error: string(description: "Stable error code on which the caller can branch.", example: "UpstreamTimeout")
+      @required details: string(description: "Human readable explanation; wording may change without notice.", example: "No insurer responded in time")
+    }
+
+    VehicleStatusRequest(
+      description: "Identifies the vehicle whose insurance status must be resolved."
+      example: { plate: "123ABC456" }
+    ) {
+      @required plate: string(
+        description: "Registration plate in the CGA format, with or without separators."
+        minLength: 5, maxLength: 15
+        example: "987XYZ654"
+      )
+    }
+
+    VehicleStatusResponseSuccess(
+      description: "Envelope returned once the insurance status has been resolved."
+      example: {
+        success: true
+        apiVersion: "1.0.0"
+        data: { coverage: "COVERED", insuranceIdentity: "STAR", vehicleStatus: "NORMAL", resolvedAt: "2026-10-10T09:15:00Z" }
+      }
+    ) {
+      @required success: boolean(description: "Constant true: the status has been resolved.", example: true)
+      @required apiVersion: string(description: "API version that built this answer (e.g. 1.0.0), so a client can detect a mismatch.", example: "1.0.0")
+      @required data: VehicleStatusResponse(description: "Consolidated insurance situation of the vehicle.")
+    }
+
+    VehicleStatusResponse(
+      description: "Insurance situation of a vehicle, consolidated from the insurers that replied."
+      example: { coverage: "NOT_COVERED", insuranceIdentity: "UNKNOWN", vehicleStatus: "UNKNOWN", resolvedAt: "2026-10-10T16:42:00Z" }
+    ) {
+      @required coverage: enum(
+        values: [COVERED NOT_COVERED UNKNOWN]
+        description: "COVERED when a covering insurer replied; NOT_COVERED when every insurer that replied declared the vehicle uncovered; UNKNOWN when only some insurers replied or their answers conflict."
+        example: "UNKNOWN"
+      )
+
+      @required insuranceIdentity: enum(
+        values: [
+          ABIAT MAGHREBIA GAT "CARTE COMAR" ZITOUNA BNA LLOYD ATTAKAFULIA
+          STAR ASTREE AMI SALIM BH_ASSURANCE CTAMA
+          UNKNOWN
+        ]
+        description: "Insurer that confirmed the coverage; UNKNOWN when the vehicle is uncovered or the coverage could not be established."
+        example: "GAT"
+      )
+
+      @required vehicleStatus: enum(
+        values: [NORMAL STOLEN FIRE TECHNICAL_TOAL_LOSS FINANCIAL_TOAL_LOSS SERIOUSLY_DAMAGED UNKNOWN]
+        description: "State of the vehicle as declared by the insurer: NORMAL when in service; STOLEN, FIRE, SERIOUSLY_DAMAGED, TECHNICAL_TOAL_LOSS or FINANCIAL_TOAL_LOSS when unusable; UNKNOWN when the insurer gave no usable answer."
+        example: "STOLEN"
+      )
+
+      @required resolvedAt: timestamp(
+        description: "Moment of the resolution, as reported by the insurer that replied."
+        example: "2026-10-11T14:30:00Z"
+      )
+    }
+  }
+
+  responses {
+    InternalError: ErrorResponse(
+      json
+      description: "Unexpected server failure; the request can be retried."
+      example: { success: false, apiVersion: "1.0.0", error: "InternalError", details: "Unexpected server error" }
+    )
+    Unauthorized: ErrorResponse(
+      json
+      description: "The API key or the JWT access token is absent or invalid."
+      example: { success: false, apiVersion: "1.0.0", error: "Unauthorized", details: "API key or token rejected" }
+    )
+    TooManyRequests: ErrorResponse(
+      json
+      description: "Too Many Requests"
+      example: { success: false, apiVersion: "1.0.0", error: "TooManyRequests", details: "Too Many Requests" }
+    )
+  }
+
+}
+
+security [ ApiKeyAuth ]
+
+paths {
+  @summary("Authenticate an extranet client")
+  POST("/auth/login") {
+    operationId: login
+    description: "Checks the login and password of an extranet client and returns the tokens used by the other operations. Only the API key is required here, since the client does not hold a token yet."
+    tags: [ "Authentication" ]
+    in: @required LoginRequest(
+      json
+      description: "Login and password of the extranet client."
+      example: { username: "insurer-bridge", password: "Tr0ub4dor&3x" }
+    )
+    out(200): LoginResponseSuccess(
+      json
+      description: "Authentication succeeded; the tokens are returned."
+      example: {
+        success: true
+        apiVersion: "1.0.0"
+        data: {
+          accessToken: "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJleHRyYW5ldC1jbGllbnQifQ.sigA4"
+          refreshToken: "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJleHRyYW5ldC1jbGllbnQifQ.sigR4"
+        }
+      }
+    )
+    out(401): ErrorResponse(
+      json
+      description: "The login or the password is not valid."
+      example: { success: false, apiVersion: "1.0.0", error: "InvalidCredentials", details: "Login or password is incorrect" }
+    )
+    out(429): TooManyRequests
+    out(500): InternalError
+  }
+
+  @summary("Resolve the insurance status of a vehicle")
+  POST("/vehicle/status") {
+    operationId: getVehicleStatus
+    description: "Resolves the insurance status of a vehicle from its registration plate. The insurers subscribed to the FTUSA contract are queried and their replies are merged into one normalised answer. Requires both the API key and the JWT access token."
+    tags: [ "Vehicles" ]
+    security [ all(ApiKeyAuth JWTAuth) ]
+    in: @required VehicleStatusRequest(
+      json
+      description: "Plate of the vehicle to look up."
+      example: { plate: "555QWE111" }
+    )
+    out(200): VehicleStatusResponseSuccess(
+      json
+      description: "The insurance status has been resolved."
+      example: {
+        success: true
+        apiVersion: "1.0.0"
+        data: { coverage: "COVERED", insuranceIdentity: "MAGHREBIA", vehicleStatus: "NORMAL", resolvedAt: "2026-10-12T08:05:00Z" }
+      }
+    )
+    out(400): ErrorResponse(
+      json
+      description: "The plate is not in the CGA format."
+      example: { success: false, apiVersion: "1.0.0", error: "InvalidPlate", details: "Plate does not match the CGA format" }
+    )
+    out(504): ErrorResponse(
+      json
+      description: "No insurer replied in time, so the status could not be resolved."
+      example: { success: false, apiVersion: "1.0.0", error: "UpstreamTimeout", details: "All insurers timed out" }
+    )
+    out(401): Unauthorized
+    out(500): InternalError
+    out(429): TooManyRequests
+  }
+}
