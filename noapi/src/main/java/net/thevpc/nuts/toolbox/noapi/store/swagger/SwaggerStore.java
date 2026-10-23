@@ -95,7 +95,7 @@ public class SwaggerStore implements NoApiStore {
         }
         NObjectElement contact = c.orElse(NObjectElement.ofEmpty());
         MContact m = new MContact();
-        m.email = contact.getStringValue("name").orElse("");
+        m.email = contact.getStringValue("email").orElse("");
         m.url = contact.getStringValue("url").orElse("");
         m.name = contact.getStringValue("name").orElse("");
         return NOptional.of(m);

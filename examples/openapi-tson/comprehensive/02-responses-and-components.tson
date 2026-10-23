@@ -1,0 +1,61 @@
+@openapi("3.0.0")
+
+info {
+  id: responses-example
+  title: "Responses and Components Example"
+  version: "1.0.0"
+  description: "Demonstrates components.responses and response references"
+}
+
+servers [
+  url("https://api.example.com")
+]
+
+components {
+  schemas {
+    User {
+      @required id: string
+      @required name: string
+    }
+    ErrorResponse {
+      @required success: boolean
+      @required error: string
+      @required details: string
+    }
+  }
+  
+  responses {
+    BadRequest: ErrorResponse(json, description: "Bad request", example: { success: false, error: "BadRequest", details: "Invalid input" })
+    Unauthorized: ErrorResponse(json, description: "Unauthorized", example: { success: false, error: "Unauthorized", details: "Missing or invalid token" })
+    NotFound: ErrorResponse(json, description: "Not found", example: { success: false, error: "NotFound", details: "Resource not found" })
+    InternalError: ErrorResponse(json, description: "Internal server error", example: { success: false, error: "InternalError", details: "Unexpected error" })
+    TooManyRequests: ErrorResponse(json, description: "Too many requests", example: { success: false, error: "TooManyRequests", details: "Rate limit exceeded" })
+  }
+  
+  securitySchemes {
+    JWTAuth: http(bearer, bearerFormat: JWT, description: "JWT authentication")
+  }
+}
+
+security [ JWTAuth ]
+
+paths {
+  GET("/users/{id}") {
+    @path @required id: string
+    out(200): User(json, description: "User found")
+    out(400): BadRequest
+    out(401): Unauthorized
+    out(404): NotFound
+    out(429): TooManyRequests
+    out(500): InternalError
+  }
+  
+  POST("/users") {
+    @required in: User(json)
+    out(201): User(json, description: "Created")
+    out(400): BadRequest
+    out(401): Unauthorized
+    out(429): TooManyRequests
+    out(500): InternalError
+  }
+}

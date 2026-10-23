@@ -15,6 +15,7 @@ import net.thevpc.nuts.toolbox.noapi.model.OpenAPIFormat;
 import net.thevpc.nuts.toolbox.noapi.convert.NoApiFormat;
 import net.thevpc.nuts.toolbox.noapi.convert.NoApiFormats;
 import net.thevpc.nuts.toolbox.noapi.convert.CondensedTsonDesugarer;
+import net.thevpc.nuts.toolbox.noapi.convert.NoApiConversion;
 import net.thevpc.nuts.toolbox.noapi.convert.NoApiDiagnostics;
 import net.thevpc.nuts.toolbox.noapi.store.swagger.SwaggerStore;
 import net.thevpc.nuts.toolbox.noapi.util.AppMessages;
@@ -141,6 +142,7 @@ public class NOpenAPIService {
             NoApiDiagnostics diagnostics = new NoApiDiagnostics(sourcePath.name());
             element = new CondensedTsonDesugarer(diagnostics).desugar(element);
         }
+        NoApiConversion.validateExamples(element, sourcePath.name());
         return element;
     }
 

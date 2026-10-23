@@ -98,7 +98,9 @@ public final class NoApiConversion {
                     ? new CondensedTsonDesugarer(diagnostics).desugarConfig(element)
                     : new CondensedTsonDesugarer(diagnostics).desugar(element);
         }
-        return NoApiCanonicalizer.canonicalize(element);
+        NElement model = NoApiCanonicalizer.canonicalize(element);
+        validateExamples(model, path.name());
+        return model;
     }
 
     public static NElement readModelString(String text, NoApiFormat format, Kind kind) {
@@ -109,6 +111,18 @@ public final class NoApiConversion {
                     ? new CondensedTsonDesugarer(diagnostics).desugarConfig(element)
                     : new CondensedTsonDesugarer(diagnostics).desugar(element);
         }
-        return NoApiCanonicalizer.canonicalize(element);
+        NElement model = NoApiCanonicalizer.canonicalize(element);
+        validateExamples(model, "string");
+        return model;
+    }
+
+    /**
+     * Checks that the examples of the document follow the constraints of their schema. The
+     * violations are reported as {@code E_EXAMPLE_MISMATCH} diagnostics.
+     */
+    public static void validateExamples(NElement model, String file) {
+        NoApiDiagnostics diagnostics = new NoApiDiagnostics(file);
+        SchemaExampleValidator.validateDocument(model, diagnostics);
+        diagnostics.throwIfErrors();
     }
 }

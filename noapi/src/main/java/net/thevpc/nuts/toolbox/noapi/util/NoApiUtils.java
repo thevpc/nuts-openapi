@@ -95,7 +95,10 @@ public class NoApiUtils {
     }
 
     public static MdElement codeElementTypeInfo(TypeInfo type, boolean includeDesc,String extra,AppMessages msg) {
-        return "$ref".equals(type.getUserType()) ? NoApiUtils.asText(type.getRef())
+        // a referenced schema is rendered as a code, like the other types, and it keeps the
+        // required marker that the caller appends to the type
+        return "$ref".equals(type.getUserType())
+                ? MdFactory.codeBacktick3("", type.getRef() + (extra == null ? "" : extra))
                 :
                 NoApiUtils.codeElement(type, includeDesc, extra==null?"":extra, msg);
     }

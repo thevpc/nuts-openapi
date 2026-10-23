@@ -1,0 +1,79 @@
+@openapi("3.0.0")
+
+info {
+  id: security-example
+  title: "Security Schemes Example"
+  version: "1.0.0"
+}
+
+servers [
+  url("https://api.example.com")
+]
+
+components {
+  securitySchemes {
+    ApiKeyHeader: apiKey(header: X-API-Key, description: "API key in header")
+    ApiKeyQuery: apiKey(query: api_key, description: "API key in query")
+    ApiKeyCookie: apiKey(cookie: session_id, description: "API key in cookie")
+    BasicAuth: http(basic, description: "Basic authentication")
+    BearerAuth: http(bearer, bearerFormat: JWT, description: "JWT Bearer token")
+    OAuth2: oauth2 {
+      description: "OAuth2 authentication"
+      flows {
+        authorizationCode {
+          authorizationUrl: "https://example.com/oauth/authorize"
+          tokenUrl: "https://example.com/oauth/token"
+          refreshUrl: "https://example.com/oauth/refresh"
+          scopes {
+            read: "Read access"
+            write: "Write access"
+            admin: "Admin access"
+          }
+        }
+        clientCredentials {
+          tokenUrl: "https://example.com/oauth/token"
+          scopes {
+            read: "Read access"
+          }
+        }
+      }
+    }
+    OpenIDConnect: openIdConnect(url: "https://example.com/.well-known/openid-configuration", description: "OpenID Connect")
+  }
+  
+  schemas {
+    User { @required id: string }
+  }
+}
+
+paths {
+  GET("/public") {
+    @security()
+    out(200): User
+  }
+  
+  GET("/apikey-header") {
+    security [ ApiKeyHeader ]
+    out(200): User
+  }
+  
+  GET("/bearer") {
+    security [ BearerAuth ]
+    out(200): User
+  }
+  
+  GET("/oauth") {
+    security [ OAuth2(read write) ]
+    out(200): User
+  }
+  
+  GET("/multi") {
+    security [ all(ApiKeyHeader BearerAuth) ]
+    out(200): User
+  }
+  
+  GET("/alternatives") {
+    security [ all(ApiKeyHeader BearerAuth), OAuth2(read) ]
+    out(200): User
+  }
+}

@@ -1,6 +1,7 @@
 @openapi("3.0.0")
 
 info {
+  id: my-api
   title: "My Application API"
   version: "1.2.3"
   description: "This document is part of My Application Documentation. It describes WebServices API exposed by My Application to Consumer Systems."
@@ -10,7 +11,7 @@ info {
     url: "https://www.mycompany.com"
     phone: "11 22 33 44"
   }
-  "x-logo": {
+  x-logo: {
     url: ""
   }
   changes [
@@ -20,136 +21,70 @@ info {
       title: "Added /login"
       observations: "The following are the changes since 1.0"
       details: [
-        "ADDED REQUEST: added /login",
+        "ADDED REQUEST: added /login"
       ]
-    },
+    }
     {
       date: "2009-08-07"
       version: "1.0.0"
       title: "Initial version"
       observations: "firstAPIs"
       details: []
-    },
+    }
   ]
 }
 
 custom {
-  "openapi-document-id": "my-api"
   config: {
     description: "This document is part of My Application Documentation. It describes WebServices API exposed by My Application to Consumer Systems."
   }
 }
 
 servers [
-  url("https://myapp.com") {
-    description: "This is the main My Application api server URL. An example is https://your-company.myapp.tn/api"
-  },
+  url("https://myapp.com" description: "This is the main My Application api server URL. An example is https://your-company.myapp.tn/api")
 ]
 
 paths {
 
   @summary("Returns the deployed API version")
   GET("/version") {
-    out(200): VersionResponse(json) {
-      description: "Returns the deployed API version information"
-      example: {
-        version: "1.2"
-      }
-    }
+    out(200): VersionResponse(json description: "Returns the deployed API version information" example: { version: "1.2" })
   }
 
   @summary("Log into the system and obtain an access authorization token. This Method is used by Mobile Application to log the user in")
   POST("/login") {
-    requestBody: {
-      description: "Login information"
-      required: true
-      content: {
-        "application/json": {
-          schema: {
-            "$ref": "#/components/schemas/LoginModel"
-          }
-          example: {
-            username: "customer"
-            password: "1234"
-          }
-        }
-      }
-    }
-    out(200): LoginResponse(json) {
-      description: "Returns a well formed token information"
-      example: {
-        accessToken: "5odHRwLlJlc3BvbnNlR...ICA5Iik7DQogIGFsdGhW50aXR="
-      }
-    }
-    out(400): ErrorType(json) {
-      description: "Returns object not found if the user or the token does not match"
-      example: {
-        success: false
-        error: "USER_NOT_FOUND"
-        details: "invalid login or password"
-        "api-version": "1.0"
-      }
-    }
-    out(403): ErrorType(json) {
-      description: "Returns forbidden access if the access could not be granted"
-      example: {
-        error: true
-        message: "Access Not Allowed"
-      }
-    }
+    @required in: LoginModel(json description: "Login information" example: { username: "customer" password: "1234" })
+    out(200): LoginResponse(json description: "Returns a well formed token information" example: { accessToken: "5odHRwLlJlc3BvbnNlR...ICA5Iik7DQogIGFsdGhW50aXR=" })
+    out(400): ErrorType(json description: "Returns object not found if the user or the token does not match" example: { success: false error: "USER_NOT_FOUND" details: "invalid login or password" api-version: "1.0" })
+    out(403): ErrorType(json description: "Returns forbidden access if the access could not be granted" example: { success: false error: "ACCESS_NOT_ALLOWED" details: "Access Not Allowed" api-version: "1.0" })
   }
 }
 
 components {
   securitySchemes {
-    JWTAuth: http(bearer) {
-      bearerFormat: "JWT"
-      description: "Example: 
-> Authorization: Bearer <token>"
-    }
+    JWTAuth: http(bearer bearerFormat: JWT description: "Example: 
+> Authorization: Bearer <token>")
   }
   schemas {
-    @description("LoginModel details the information used for Login method input")
-    LoginModel: object(format: intermediate-structure, required: ["phoneNumber", "emailAddress"]) {
-      username: string(description: "User name", example: "customer")
-      password: string(description: "User password", example: "1234")
-      example: {
-        username: "customer"
-        password: "1234"
-      }
+    LoginModel(format: intermediate-structure description: "LoginModel details the information used for Login method input" example: { username: "customer" password: "1234" }) {
+      @required username: string(description: "User name" example: "customer")
+      @required password: string(description: "User password" example: "1234")
     }
-    @description("LoginResponse details information used as Login method result")
-    LoginResponse: object(format: intermediate-structure) {
-      @required accessToken: string(minLength: 0, maxLength: 512, description: "Authorization Token", example: "ICAgIGFsdGh...5odHRwLlJlc3BvbnNlRW50aXR5Iik7DQo=")
-      example: {
-        accessToken: "ICAgIGFsdGh...5odHRwLlJlc3BvbnNlRW50aXR5Iik7DQo="
-      }
+    LoginResponse(format: intermediate-structure description: "LoginResponse details information used as Login method result" example: { accessToken: "ICAgIGFsdGh...5odHRwLlJlc3BvbnNlRW50aXR5Iik7DQo=" }) {
+      @required accessToken: string(minLength: 0 maxLength: 512 description: "Authorization Token" example: "ICAgIGFsdGh...5odHRwLlJlc3BvbnNlRW50aXR5Iik7DQo=")
     }
-    @description("VersionResponse details all API version information")
-    VersionResponse: object {
-      @required version: string(description: "version string", example: "1.2.3")
-      example: {
-        value: "1.2.3"
-      }
+    VersionResponse(description: "VersionResponse details all API version information" example: { version: "1.2.3" }) {
+      @required version: string(description: "version string" example: "1.2.3")
     }
-    @description("Message format when any error occurs")
-    ErrorType: object {
-      @required success: boolean(description: "The value must be 'false'", enum: [
-        "false",
-      ], example: "true")
-      @required error: string(description: "An error code", example: "DOCUMENT_NOT_FOUND")
-      details: string(description: "A user friendly error message. Can be null or non present", example: "document should not be missing")
-      "api-version": string(description: "Server side api-version", example: "1.0")
-      example: {
-        success: false
-        error: "DOCUMENT_NOT_FOUND"
-        details: "document should not be missing"
-        "api-version": "1.0"
-      }
+    ErrorType(description: "Message format when any error occurs" example: { success: false error: "DOCUMENT_NOT_FOUND" details: "document should not be missing" api-version: "1.0" }) {
+      @required success: boolean(description: "The value must be 'false'" enum: [false] example: false)
+      @required error: string(description: "An error code" example: "DOCUMENT_NOT_FOUND")
+      details: string(description: "A user friendly error message. Can be null or non present" example: "document should not be missing")
+      api-version: string(description: "Server side api-version" example: "1.0")
     }
   }
 }
 
 security [
-  JWTAuth,
+  JWTAuth
 ]

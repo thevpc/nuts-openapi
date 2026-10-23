@@ -1,0 +1,74 @@
+@openapi("3.0.0")
+
+info {
+  id: basic-api
+  title: "Basic API Example"
+  version: "1.0.0"
+  description: "A basic example demonstrating core features"
+  contact {
+    name: "API Support"
+    email: "support@example.com"
+  }
+}
+
+servers [
+  url("https://api.example.com", description: "Production server")
+]
+
+tags [
+  { name: "Users", description: "User operations" }
+]
+
+components {
+  schemas {
+    User(description: "User object") {
+      @required id: string(format: uuid)
+      @required name: string(minLength: 1, maxLength: 100)
+      email: string(format: email)
+      age: integer(minimum: 0)
+      status: UserStatus
+      createdAt: timestamp
+    }
+    
+    UserStatus: enum(values: [ACTIVE INACTIVE PENDING])
+    
+    ErrorResponse(description: "Error response") {
+      @required success: boolean(example: false)
+      @required error: string
+      details: string
+    }
+  }
+  
+  securitySchemes {
+    ApiKeyAuth: apiKey(header: X-API-Key, description: "API key authentication")
+  }
+}
+
+security [ ApiKeyAuth ]
+
+paths {
+  @summary("List all users")
+  @tags("Users")
+  GET("/users") {
+    @query page: integer(default: 1, minimum: 1)
+    @query limit: integer(default: 10, minimum: 1, maximum: 100)
+    out(200): array[User](description: "List of users")
+    out(401): ErrorResponse
+  }
+  
+  @summary("Get user by ID")
+  @tags("Users")
+  GET("/users/{id}") {
+    @path @required id: string(format: uuid)
+    out(200): User(description: "User found")
+    out(404): ErrorResponse
+  }
+  
+  @summary("Create user")
+  @tags("Users")
+  POST("/users") {
+    @required in: User(json, description: "User to create")
+    out(201): User(description: "User created")
+    out(400): ErrorResponse
+  }
+}

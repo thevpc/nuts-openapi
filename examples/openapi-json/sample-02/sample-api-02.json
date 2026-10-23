@@ -168,8 +168,10 @@
                   "$ref": "#/components/schemas/ErrorType"
                 },
                 "example": {
-                  "error": true,
-                  "message": "Access Not Allowed"
+                  "success": false,
+                  "error": "ACCESS_NOT_ALLOWED",
+                  "details": "Access Not Allowed",
+                  "api-version": "1.0"
                 }
               }
             }
@@ -227,8 +229,8 @@
           }
         },
         "required": [
-          "phoneNumber",
-          "emailAddress"
+          "username",
+          "password"
         ],
         "example": {
           "username": "customer",
@@ -269,7 +271,7 @@
           "version"
         ],
         "example": {
-          "value": "1.2.3"
+          "version": "1.2.3"
         }
       },
       "ErrorType": {
@@ -280,9 +282,9 @@
             "type": "boolean",
             "description": "The value must be 'false'",
             "enum": [
-              "false"
+              false
             ],
-            "example": "true"
+            "example": false
           },
           "error": {
             "type": "string",

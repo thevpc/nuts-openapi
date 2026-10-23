@@ -1,0 +1,73 @@
+@openapi("3.0.0")
+
+info {
+  id: types-example
+  title: "Type Expressions Example"
+  version: "1.0.0"
+}
+
+servers [
+  url("https://api.example.com")
+]
+
+components {
+  schemas {
+    Primitives {
+      str: string
+      strDesc: string(description: "A string")
+      strLen: string(minLength: 1, maxLength: 50, pattern: "^[A-Za-z]+$")
+      num: number
+      numRange: number(minimum: 0, maximum: 100, multipleOf: 0.5)
+      int: integer
+      intRange: integer(minimum: 1, maximum: 1000)
+      bool: boolean
+      date: string(format: date)
+      dateTime: timestamp
+      email: string(format: email)
+      uuid: string(format: uuid)
+    }
+    
+    Enums {
+      status: enum(values: [ACTIVE INACTIVE PENDING])
+      color: enum(values: ["red", "green", "blue"], description: "Color choice")
+    }
+    
+    Arrays {
+      strings: array[string]
+      users: array[User]
+      named: array(description: "List of items")[Item]
+      nested: array[array[string]]
+      constrained: array(minItems: 1, maxItems: 10)[string]
+    }
+    
+    Objects {
+      inline: object {
+        name: string
+        value: integer
+      }
+      withDesc: object(description: "Inline object") {
+        field: string
+      }
+    }
+    
+    References {
+      user: User
+      userDesc: User(description: "A user reference")
+    }
+    
+    User {
+      @required id: string
+      name: string
+    }
+    
+    Item {
+      @required id: string
+    }
+  }
+}
+
+paths {
+  GET("/test") {
+    out(200): Primitives
+  }
+}

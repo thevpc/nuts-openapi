@@ -21,6 +21,10 @@ import java.util.*;
  *   expanded by the reader).</li>
  *   <li><b>C6</b> applied at comparison time (see {@link NoApiTreeComparator}).</li>
  *   <li><b>C7</b> response keys are strings (the model already uses string keys).</li>
+ *   <li><b>C8</b> the document id is stored in {@code custom.openapi-document-id}: an
+ *   {@code info.id} member is moved there (and removed from the info).</li>
+ *   <li><b>C9</b> the members of an {@code apiKey} security scheme are ordered
+ *   {@code type}, {@code name}, {@code in} (the other members keep their order).</li>
  * </ul>
  */
 public final class NoApiCanonicalizer {
@@ -38,7 +42,72 @@ public final class NoApiCanonicalizer {
     }
 
     public static NElement canonicalize(NElement root) {
-        return canon(root, null);
+        return moveDocumentId(canon(root, null));
+    }
+
+    /**
+     * The document id is stored in {@code custom.openapi-document-id}: an {@code info.id} member is
+     * moved there (and removed from the info). When there is no custom section, it is created right
+     * after the info. The custom section is always placed right after the info, so that the order of
+     * the document members does not depend on where the custom section was written.
+     */
+    private static NElement moveDocumentId(NElement root) {
+        NObjectElement o = root.asObject().orNull();
+        if (o == null) {
+            return root;
+        }
+        NElement infoValue = o.get("info").orNull();
+        NObjectElement info = infoValue == null ? null : infoValue.asObject().orNull();
+        NElement customValue = o.get("custom").orNull();
+        NObjectElement custom = customValue == null ? null : customValue.asObject().orNull();
+        boolean hasInfoId = info != null && info.get("id").isPresent();
+        if (!hasInfoId && customValue == null) {
+            // nothing to normalize
+            return root;
+        }
+        // the id is removed from the info
+        NElement newInfo = infoValue;
+        NElement id = null;
+        if (hasInfoId) {
+            id = info.get("id").get();
+            NObjectElementBuilder ib = Tson.obj();
+            for (NElement m : Tson.members(info)) {
+                if (!"id".equals(Tson.nameOf(m))) {
+                    ib.add(Tson.nameOf(m), Tson.valueOf(m));
+                }
+            }
+            newInfo = ib.build();
+        }
+        // the id is stored first in the custom section
+        NObjectElementBuilder cb = Tson.obj();
+        if (hasInfoId && (custom == null || !custom.get("openapi-document-id").isPresent())) {
+            cb.add("openapi-document-id", id);
+        }
+        if (custom != null) {
+            for (NElement m : Tson.members(custom)) {
+                cb.add(Tson.nameOf(m), Tson.valueOf(m));
+            }
+        }
+        NObjectElementBuilder rb = Tson.obj();
+        boolean customAdded = false;
+        for (NElement m : Tson.members(o)) {
+            String k = Tson.nameOf(m);
+            if ("info".equals(k)) {
+                rb.add("info", newInfo);
+                if (!customAdded) {
+                    rb.add("custom", cb.build());
+                    customAdded = true;
+                }
+            } else if ("custom".equals(k)) {
+                if (!customAdded) {
+                    rb.add("custom", cb.build());
+                    customAdded = true;
+                }
+            } else {
+                rb.add(k, Tson.valueOf(m));
+            }
+        }
+        return rb.build();
     }
 
     private static NElement canon(NElement e, String parentKey) {
@@ -65,6 +134,15 @@ public final class NoApiCanonicalizer {
             if (asParameter) {
                 r = moveParamSchema(r);
             }
+            if ("securitySchemes".equals(parentKey)) {
+                // the members of the map are the security schemes
+                NObjectElementBuilder sb = Tson.obj();
+                for (NElement m : Tson.members(r)) {
+                    NElement v = Tson.valueOf(m);
+                    sb.add(Tson.nameOf(m), v.asObject().isPresent() ? reorderApiKeyScheme(v.asObject().get()) : v);
+                }
+                r = sb.build();
+            }
             return r;
         }
         NArrayElement a = e.asArray().orNull();
@@ -77,6 +155,31 @@ public final class NoApiCanonicalizer {
             return b.build();
         }
         return e;
+    }
+
+    /**
+     * The canonical order of the members of an {@code apiKey} security scheme: {@code type},
+     * {@code name}, {@code in} (the condensed form {@code apiKey(header: X-API-KEY)} always reads
+     * them in that order).
+     */
+    private static NObjectElement reorderApiKeyScheme(NObjectElement o) {
+        if (!"apiKey".equals(Tson.asString(o.get("type").orNull()))) {
+            return o;
+        }
+        List<String> order = Arrays.asList("type", "name", "in");
+        NObjectElementBuilder b = Tson.obj();
+        for (String k : order) {
+            if (o.get(k).isPresent()) {
+                b.add(k, o.get(k).get());
+            }
+        }
+        for (NElement m : Tson.members(o)) {
+            String k = Tson.nameOf(m);
+            if (!order.contains(k)) {
+                b.add(k, Tson.valueOf(m));
+            }
+        }
+        return b.build();
     }
 
     private static boolean isDroppable(String parentKey, String k, NElement v) {
