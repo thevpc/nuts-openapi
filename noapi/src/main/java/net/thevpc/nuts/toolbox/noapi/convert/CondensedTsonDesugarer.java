@@ -1709,7 +1709,7 @@ public class CondensedTsonDesugarer {
         // oauth2 { flows { ... } }
         NObjectElementBuilder b2 = Tson.obj();
         b2.add("type", Tson.str("oauth2"));
-        for (NElement m : Tson.members(vo)) {
+        for (NElement m : schemeMembers(value, vo, path)) {
             b2.add(Tson.nameOf(m), Tson.valueOf(m));
         }
         return b2.build();

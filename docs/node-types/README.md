@@ -53,7 +53,7 @@ info {
 ```
 
 **Notes:**
-- `id` is moved to `custom.openapi-document-id` (cannot coexist with explicit `custom.openapi-document-id`)
+- `id` is moved to `custom.openapi-document-id` (cannot coexist with explicit `custom.openapi-document-id`) and is the canonical form in condensed TSON (the `custom` section is not written by the writer)
 - `contact`, `license`, `changes` passed through verbatim
 - Template strings `${...}`, `<<...>>`, `##...##` are opaque
 
