@@ -6,6 +6,7 @@ import java.util.List;
 public class MPath {
     public String url;
     public String enabled;
+    public boolean deprecated;
     public String summary;
     public String description;
     public List<MCall> calls=new ArrayList<>();

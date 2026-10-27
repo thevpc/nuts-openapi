@@ -388,6 +388,10 @@ public class SwaggerStore implements NoApiStore {
                         dparameters = v.value().asArray().get();
                         break;
                     }
+                    case "deprecated": {
+                        p.deprecated = v.value().asBooleanValue().orElse(false);
+                        break;
+                    }
                 }
             }
             p.calls = new ArrayList<>();
@@ -397,7 +401,8 @@ public class SwaggerStore implements NoApiStore {
                     case "enabled":
                     case "summary":
                     case "description":
-                    case "parameters": {
+                    case "parameters":
+                    case "deprecated": {
                         break;
                     }
                     case "post":
@@ -420,6 +425,9 @@ public class SwaggerStore implements NoApiStore {
                         if (call.enabled == null) {
                             call.enabled = p.enabled;
                         }
+                        if (!call.deprecated && p.deprecated) {
+                            call.deprecated = true;
+                        }
                         p.calls.add(call);
                         break;
                     }
@@ -441,6 +449,7 @@ public class SwaggerStore implements NoApiStore {
         cc.summary = call.getStringValue("summary").orNull();
         cc.description = call.getStringValue("description").orNull();
         cc.enabled = call.getStringValue("enabled").orNull();
+        cc.deprecated = call.getBooleanValue("deprecated").orElse(false);
         NArrayElement parameters = call.getArray("parameters")
                 .orElseGet(() -> NArrayElementBuilder.of().build());
 
@@ -503,9 +512,10 @@ public class SwaggerStore implements NoApiStore {
                     MCall.Response response = new MCall.Response();
                     cc.responses.add(response);
                     response.code = s.toString();
-                    response.description = v.asObject().get().getStringValue("description").orElse("");
+                    NObjectElement resolvedResponse = resolveResponseValue(v, apiElement);
+                    response.description = resolvedResponse.getStringValue("description").orElse("");
                     response.contents = new ArrayList<>();
-                    for (NElement icontent : v.asObject().get().getObject("content").orElse(NObjectElement.ofEmpty())) {
+                    for (NElement icontent : resolvedResponse.getObject("content").orElse(NObjectElement.ofEmpty())) {
                         NPairElement content = icontent.asPair().get();
                         TypeInfo o = new OpenApiParser().parseOneType(content.value().asObject().get(), null, allTypes);
                         MCall.Content respContent = new MCall.Content();
@@ -528,5 +538,29 @@ public class SwaggerStore implements NoApiStore {
                     }
                 });
         return cc;
+    }
+
+    /**
+     * Resolves an operation response that is a {@code $ref} to a component response
+     * ({@code #/components/responses/<Name>}) to the referenced response object, so that its
+     * description, content and examples are reported instead of being lost. Responses that are
+     * already inline are returned unchanged.
+     */
+    private NObjectElement resolveResponseValue(NElement value, NElement apiElement) {
+        NObjectElement v = value == null ? null : value.asObject().orNull();
+        if (v == null) {
+            return NObjectElement.ofEmpty();
+        }
+        String ref = v.getStringValue("$ref").orNull();
+        if (ref != null && ref.startsWith("#/components/responses/")) {
+            String name = ref.substring("#/components/responses/".length());
+            NObjectElement components = _root(apiElement).getObject("components").orElse(NObjectElement.ofEmpty());
+            NObjectElement globalResponses = components.getObject("responses").orElse(NObjectElement.ofEmpty());
+            NElement referenced = globalResponses.get(name).orNull();
+            if (referenced != null && referenced.asObject().isPresent()) {
+                return referenced.asObject().get();
+            }
+        }
+        return v;
     }
 }

@@ -28,7 +28,7 @@ public class CondensedTsonWriter {
 
     /** The members an object schema may have to be written in the condensed form. */
     private static final Set<String> OBJECT_SCHEMA_KEYS = new LinkedHashSet<>(Arrays.asList(
-            "type", "format", "description", "properties", "required", "example"));
+            "type", "format", "description", "properties", "required", "example", "deprecated"));
 
     private static final Map<String, String> MEDIA_REVERSE = new HashMap<>();
 
@@ -844,16 +844,29 @@ public class CondensedTsonWriter {
             writePlainMember(name, schema);
             return;
         }
+        String ann = deprecatedAnnotation(o);
         if (!canCondenseSchema(o)) {
-            line("@raw " + key(name) + ": " + plainValue(schema, indent));
+            line(ann + "@raw " + key(name) + ": " + plainValue(schema, indent));
             return;
         }
         if ("object".equals(Tson.asString(o.get("type").orNull())) && isBareToken(name)) {
             // the declaration of an object schema: LoginRequest(description: "…") { … }
-            line(objectExpr(o, name));
+            line(ann + objectExpr(o, name));
             return;
         }
-        writeSchemaMember("", name, schema);
+        writeSchemaMember(ann, name, schema);
+    }
+
+    /**
+     * The {@code @deprecated} annotation of a schema written as a member or a declaration; empty
+     * when the schema is not deprecated.
+     */
+    private static String deprecatedAnnotation(NObjectElement o) {
+        NElement d = o.get("deprecated").orNull();
+        if (d == null || !Tson.asBoolean(d, false)) {
+            return "";
+        }
+        return "@deprecated ";
     }
 
     /**
@@ -1123,6 +1136,10 @@ public class CondensedTsonWriter {
             StringBuilder p = new StringBuilder();
             if (required.contains(pname)) {
                 p.append("@required ");
+            }
+            NObjectElement po = pschema.asObject().orNull();
+            if (po != null && Tson.asBoolean(po.get("deprecated").orNull(), false)) {
+                p.append("@deprecated ");
             }
             p.append(key(pname)).append(": ").append(schemaExpr(pschema));
             s.append(indentStr()).append(p).append("\n");

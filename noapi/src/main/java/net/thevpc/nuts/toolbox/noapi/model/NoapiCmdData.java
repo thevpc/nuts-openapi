@@ -19,6 +19,7 @@ public class NoapiCmdData {
     private String kind;
     private boolean condensed = true;
     private boolean force;
+    private boolean strict;
     private String output;
 
     public String getCommand() {
@@ -135,6 +136,15 @@ public class NoapiCmdData {
 
     public NoapiCmdData setForce(boolean force) {
         this.force = force;
+        return this;
+    }
+
+    public boolean isStrict() {
+        return strict;
+    }
+
+    public NoapiCmdData setStrict(boolean strict) {
+        this.strict = strict;
         return this;
     }
 

@@ -125,4 +125,19 @@ public final class NoApiConversion {
         SchemaExampleValidator.validateDocument(model, diagnostics);
         diagnostics.throwIfErrors();
     }
+
+    /**
+     * Like {@link #validateExamples} but the example/schema violations are printed as warnings on
+     * the standard error instead of aborting the run. This is the default behaviour; the
+     * {@code --strict} flag selects the throwing variant.
+     */
+    public static void validateExamplesWarnOnly(NElement model, String file) {
+        NoApiDiagnostics diagnostics = new NoApiDiagnostics(file);
+        SchemaExampleValidator.validateDocument(model, diagnostics);
+        for (NoApiDiagnostics.Diagnostic d : diagnostics.all()) {
+            if (d.error) {
+                System.err.println(d);
+            }
+        }
+    }
 }

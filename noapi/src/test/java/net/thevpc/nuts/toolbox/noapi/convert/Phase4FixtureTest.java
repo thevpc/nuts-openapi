@@ -117,7 +117,7 @@ public class Phase4FixtureTest {
         // security schemes
         assertEquals("apiKey", str(model, "components", "securitySchemes", "ApiKeyAuth", "type"));
         assertEquals("header", str(model, "components", "securitySchemes", "ApiKeyAuth", "in"));
-        assertEquals("X-API-KEY", str(model, "components", "securitySchemes", "ApiKeyAuth", "name"));
+        assertEquals("X-API-Key", str(model, "components", "securitySchemes", "ApiKeyAuth", "name"));
         assertEquals("http", str(model, "components", "securitySchemes", "JWTAuth", "type"));
         assertEquals("bearer", str(model, "components", "securitySchemes", "JWTAuth", "scheme"));
         assertEquals("JWT", str(model, "components", "securitySchemes", "JWTAuth", "bearerFormat"));
@@ -179,8 +179,8 @@ public class Phase4FixtureTest {
         assertEquals("1.0.0", str(model, "info", "changes", "0", "version"));
 
         // the common headers
-        assertEquals("string", str(model, "components", "headers", "X-API-KEY", "schema", "type"));
-        assertNotNull(str(model, "components", "headers", "X-API-KEY", "description"));
+        assertEquals("string", str(model, "components", "headers", "X-API-Key", "schema", "type"));
+        assertNotNull(str(model, "components", "headers", "X-API-Key", "description"));
 
         // the examples of the request bodies and of the responses
         assertNotNull(node(model, "paths", "/vehicle/status", "post", "requestBody", "content",

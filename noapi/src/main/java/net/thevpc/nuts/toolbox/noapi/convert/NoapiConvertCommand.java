@@ -23,6 +23,7 @@ public final class NoapiConvertCommand {
         private NoApiFileKind kind = NoApiFileKind.AUTO;
         private boolean condensed = true;
         private boolean force = false;
+        private boolean strict = false;
 
         public String getInput() {
             return input;
@@ -86,6 +87,15 @@ public final class NoapiConvertCommand {
             this.force = force;
             return this;
         }
+
+        public boolean isStrict() {
+            return strict;
+        }
+
+        public Options setStrict(boolean strict) {
+            this.strict = strict;
+            return this;
+        }
     }
 
     public static class Result {
@@ -140,6 +150,14 @@ public final class NoapiConvertCommand {
             model = raw;
         }
         model = NoApiCanonicalizer.canonicalize(model);
+
+        if (convKind == NoApiConversion.Kind.API) {
+            if (o.strict) {
+                NoApiConversion.validateExamples(model, input.name());
+            } else {
+                NoApiConversion.validateExamplesWarnOnly(model, input.name());
+            }
+        }
 
         // target format: explicit --to, else inferred from the output extension, else TSON
         NPath output = o.output != null && !o.output.isEmpty() ? NPath.of(o.output) : null;

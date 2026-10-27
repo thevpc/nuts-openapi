@@ -437,7 +437,7 @@ public class MainMarkdownGenerator {
                 for (FieldInfo p : v.getFields()) {
                     mdTableBuilder.addRows(
                             MdFactory.row().addCells(
-                                    NoApiUtils.asText(p.name),
+                                    NoApiUtils.asText(p.name + (p.deprecated ? (" [" + msg.get("DEPRECATED").get() + "]") : "")),
                                     codeElementTypeInfo(p.schema, false, requiredSuffix(p.required),rmodel, msg),
                                     NoApiUtils.asText(p.description == null ? "" : p.description.trim()),
                                     NoApiUtils.jsonTextElementInlined(p.examples.isEmpty() ? null : p.examples.get(0).value)
@@ -578,7 +578,8 @@ public class MainMarkdownGenerator {
         all.add(MdFactory.endParagraph());
         String method = NStringUtils.strip(call.method).toUpperCase();
         String url = NStringUtils.strip(path.url);
-        all.add(MdFactory.title(3, method + " " + url));
+        all.add(MdFactory.title(3, method + " " + url
+                + (call.deprecated ? (" [" + msg.get("DEPRECATED").get() + "]") : "")));
         all.add(NoApiUtils.asText(nsummary));
         if (!NBlankable.isBlank(nsummary) && !nsummary.endsWith(".")) {
             all.add(NoApiUtils.asText("."));

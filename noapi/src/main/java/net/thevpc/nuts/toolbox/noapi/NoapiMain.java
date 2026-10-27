@@ -137,6 +137,13 @@ public class NoapiMain {
                         data.get(data.size() - 1).setForce(f);
                     }
                 })
+                .when("--strict").asFlag(a -> {
+                    boolean f = a.booleanValue();
+                    ref.setStrict(f);
+                    if (!data.isEmpty()) {
+                        data.get(data.size() - 1).setStrict(f);
+                    }
+                })
                 .when("--output", "-o").asEntry(a -> {
                     String v = a.getStringValue().get();
                     ref.setOutput(v);
@@ -163,6 +170,7 @@ public class NoapiMain {
                     c.setKind(ref.getKind());
                     c.setCondensed(ref.isCondensed());
                     c.setForce(ref.isForce());
+                    c.setStrict(ref.isStrict());
                     c.setOutput(ref.getOutput());
                     c.setPath(a.image());
                     data.add(c);
@@ -191,6 +199,7 @@ public class NoapiMain {
             c.setTarget(ref.getTarget());
             c.setVars(ref.getVars());
             c.setVarsMap(new HashMap<>(ref.getVarsMap()));
+            c.setStrict(ref.isStrict());
             c.setPath(NPath.ofUserDirectory().toString());
             data.add(c);
         }
@@ -205,7 +214,7 @@ public class NoapiMain {
             switch (d.getCommand()) {
                 case "pdf": {
                     NOpenAPIService service = new NOpenAPIService(session);
-                    service.run(d.getPath(), d.getTarget(), d.getVars(), d.getVarsMap(), d.isKeep(), d.getOpenAPIFormat());
+                    service.run(d.getPath(), d.getTarget(), d.getVars(), d.getVarsMap(), d.isKeep(), d.getOpenAPIFormat(), d.isStrict());
                     break;
                 }
                 case "convert": {
@@ -213,6 +222,7 @@ public class NoapiMain {
                             .setInput(d.getPath())
                             .setOutput(d.getOutput())
                             .setForce(d.isForce())
+                            .setStrict(d.isStrict())
                             .setCondensed(d.isCondensed());
                     if (d.getFrom() != null) {
                         o.setFrom(NoApiFormat.parse(d.getFrom()).orNull());

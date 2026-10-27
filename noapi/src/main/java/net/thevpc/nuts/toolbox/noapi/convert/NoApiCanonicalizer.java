@@ -15,7 +15,7 @@ import java.util.*;
  *   <li><b>C2</b> {@code required} is re-ordered to property order; names not in
  *   {@code properties} are kept.</li>
  *   <li><b>C3</b> path-level {@code summary}, {@code description}, {@code parameters},
- *   {@code enabled} are pushed into each operation.</li>
+ *   {@code enabled}, {@code deprecated} are pushed into each operation.</li>
  *   <li><b>C4</b> parameter-level schema keywords move into {@code schema}.</li>
  *   <li><b>C5</b> {@code format: "object::X"} is kept on object schemas (bare form already
  *   expanded by the reader).</li>
@@ -30,7 +30,7 @@ import java.util.*;
 public final class NoApiCanonicalizer {
 
     private static final Set<String> PATH_FIELDS = new LinkedHashSet<>(Arrays.asList(
-            "summary", "description", "parameters", "enabled"));
+            "summary", "description", "parameters", "enabled", "deprecated"));
 
     private static final Set<String> SCHEMA_KEYWORDS = new LinkedHashSet<>(Arrays.asList(
             "type", "format", "items", "enum", "default", "minimum", "maximum", "minLength",

@@ -201,6 +201,7 @@ public class OpenApiParser {
                     ff.examples.add(new MExample(null, example));
                 }
                 ff.required = requiredSet.contains(ff.name);
+                ff.deprecated = prop.getBooleanValue("deprecated").orElse(false);
                 TypeInfo a0 = parseOneType(prop, null, allTypes);
                 ff.schema = a0;
                 tt.getFields().add(ff);

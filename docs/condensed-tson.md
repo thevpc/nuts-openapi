@@ -232,9 +232,17 @@ extra `key: value` pairs in the parentheses are operation-level OpenAPI keys.
 The same keys are also accepted as pairs in the head parentheses or in the body.
 
 **Flattening.** A path with GET and POST is written as two operations. Path-level `summary`,
-`description`, `parameters` and `enabled` from a JSON/YAML source are **copied into each operation**
-by the canonicalizer (an operation's own value wins). When reading, operations with the same path are
-grouped under one path item, in order of appearance.
+`description`, `parameters`, `enabled` and `deprecated` from a JSON/YAML source are **copied into each
+operation** by the canonicalizer (an operation's own value wins). When reading, operations with the
+same path are grouped under one path item, in order of appearance.
+
+**Path item object (NoAPI extension).** A path may also be written as an object: `"<path>": { … }`.
+Its members are the operations of the path (in the condensed head form, without the path argument:
+`get { … }`) plus the path-level OpenAPI keys `summary`, `description`, `parameters`, `enabled` and
+`deprecated`. `@deprecated` / `@deprecated(false)` on the item is the annotation form of the
+`deprecated` pair. The writer only falls back to this form for a path item that cannot be flattened
+into operations (§2); for a document it reads back, the canonicalizer has already pushed the
+path-level keys into the operations.
 
 **Operation body members (changed).** The body accepts the **whole Operation Object**:
 
@@ -396,6 +404,9 @@ components {
 - **Body `example`** (named object or `example: <literal>`) is the schema-level `example`.
 - `@required` ≡ the name is added to the schema's `required` list. `@required(false)` is an explicit
   false. The `required` array order is property order (canonicalization C2).
+- `@deprecated` / `@deprecated(false)` ≡ the schema keyword `deprecated: true` / `false`. It works on
+  a schema declaration and on a property (the OpenAPI flag exists on the Schema Object); the writer
+  keeps the annotation form.
 - **`@raw`** before a schema declaration: its body is a verbatim plain OpenAPI schema, no
   condensation inside. This is the fallback for schemas the writer cannot condense (`allOf`,
   `oneOf`, `anyOf`, `not`, `discriminator`, …).
@@ -474,8 +485,10 @@ components {
 |---|---|---|---|
 | `@openapi` | document | version string | `openapi` |
 | `@summary` `@description` `@operationId` `@tags` `@deprecated` `@enabled` `@security` | operation | see §2 | operation keys |
+| `@deprecated` | path item (§2) | optional bool (default `true`) | `deprecated`, copied into each operation |
 | `@description` | schema declaration, property | string | schema / property `description` |
 | `@example` | schema declaration, property | one value (an object) | schema / property `example` |
+| `@deprecated` | schema declaration, property | optional bool (default `true`) | schema / property `deprecated` |
 | `@metadata` | member of an object body | none | the member is a schema keyword, not a property (§4.1) |
 | `@required` | property, parameter, `in`, header | optional bool (default `true`) | required flag |
 | `@path` `@query` `@header` `@cookie` `@param` `@body` | operation member | none | input location |
@@ -579,7 +592,8 @@ Round trips are identical **except**:
 - **C1** empty `tags`, `parameters`, `required` arrays and empty `components.responses` /
   `components.parameters` objects are dropped.
 - **C2** `required` is re-ordered to property order; names not in `properties` are kept.
-- **C3** path-level `summary`, `description`, `parameters`, `enabled` are pushed into each operation.
+- **C3** path-level `summary`, `description`, `parameters`, `enabled`, `deprecated` are pushed into
+  each operation.
 - **C4** parameter-level schema keywords (`type`, `format`, …) move into `schema` (applied only to
   actual parameters, i.e. items of a `parameters` array).
 - **C5** `format: "object::X"` ↔ bare `X` only on `object`.

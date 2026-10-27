@@ -72,6 +72,10 @@ public class NOpenAPIService {
     }
 
     public void run(String source, String target, String varsPath, Map<String, String> varsMap, boolean keep, OpenAPIFormat formatOverride) {
+        run(source, target, varsPath, varsMap, keep, formatOverride, false);
+    }
+
+    public void run(String source, String target, String varsPath, Map<String, String> varsMap, boolean keep, OpenAPIFormat formatOverride, boolean strict) {
 
         NPath sourcePath = resolvePath(source);
         if (session.isPlainTrace()) {
@@ -80,7 +84,7 @@ public class NOpenAPIService {
         String sourceBaseName = sourcePath.nameParts(NPathExtensionType.SMART).baseName();
         MStoreAndModel rmodel=new MStoreAndModel();
         NoApiFormat format = NoApiFormats.detect(sourcePath, NoApiFormat.of(formatOverride));
-        NElement sourceElement = readApi(sourcePath, format);
+        NElement sourceElement = readApi(sourcePath, format, strict);
         rmodel.format = format;
         rmodel.store = new SwaggerStore();
         rmodel.model = rmodel.store.loadStoreModel(sourceElement);
@@ -137,12 +141,20 @@ public class NOpenAPIService {
      * TSON are accepted; JSON/YAML are read as-is.
      */
     public static NElement readApi(NPath sourcePath, NoApiFormat format) {
+        return readApi(sourcePath, format, false);
+    }
+
+    public static NElement readApi(NPath sourcePath, NoApiFormat format, boolean strict) {
         NElement element = NoApiFormats.read(sourcePath, format);
         if (format == NoApiFormat.TSON) {
             NoApiDiagnostics diagnostics = new NoApiDiagnostics(sourcePath.name());
             element = new CondensedTsonDesugarer(diagnostics).desugar(element);
         }
-        NoApiConversion.validateExamples(element, sourcePath.name());
+        if (strict) {
+            NoApiConversion.validateExamples(element, sourcePath.name());
+        } else {
+            NoApiConversion.validateExamplesWarnOnly(element, sourcePath.name());
+        }
         return element;
     }
 

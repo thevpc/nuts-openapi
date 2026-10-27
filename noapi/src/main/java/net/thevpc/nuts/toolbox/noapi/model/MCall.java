@@ -12,6 +12,11 @@ public class MCall {
      * path-level {@code enabled} is pushed down to each operation). {@code null} when absent.
      */
     public String enabled;
+    /**
+     * True when the operation is marked {@code deprecated} (OpenAPI Operation Object flag), or when
+     * its path item is (the NoAPI extension pushes a path-level {@code @deprecated} down).
+     */
+    public boolean deprecated;
     public List<MParam> headerParameters;
     public List<MParam> queryParameters;
     public List<MParam> pathParameters;

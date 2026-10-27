@@ -539,8 +539,45 @@ public class CondensedTsonDesugarer {
                 }
                 pb.add(method, opObj);
             } else {
-                // plain path item, read as-is
-                grouped.put(name, Tson.obj().addAll(Tson.members(Tson.valueOf(m))));
+                // path item object: @deprecated is expanded, the condensed operations are desugared
+                // (the path is the one of the item when they don't repeat it), the other members are
+                // kept as-is
+                NObjectElement item = Tson.valueOf(m).asObject().orNull();
+                NObjectElementBuilder pb = Tson.obj();
+                if (item != null) {
+                    for (NElementAnnotation a : Tson.annotationsOf(m)) {
+                        if ("deprecated".equals(a.name())) {
+                            if (!item.get("deprecated").isPresent()) {
+                                pb.add("deprecated", a.param(0).isPresent() ? a.param(0).get() : Tson.ofBoolean(true));
+                            }
+                        } else {
+                            diagnostics.error("E_UNKNOWN_ANNOTATION",
+                                    "annotation @" + a.name() + " is not allowed on a path item",
+                                    path + "." + name);
+                        }
+                    }
+                    for (NElement im : Tson.members(item)) {
+                        String imName = Tson.nameOf(im);
+                        if (imName == null) {
+                            continue;
+                        }
+                        if (Tson.isMethod(imName) && Tson.isHeaded(im)) {
+                            String method = imName.toLowerCase();
+                            List<NElement> params = Tson.headParams(im);
+                            String opPath = firstPositional(params);
+                            if (opPath == null) {
+                                opPath = name;
+                            }
+                            pb.add(method, desugarOperation(im, method, opPath, params,
+                                    path + "." + name + "." + method));
+                        } else {
+                            pb.add(imName, Tson.valueOf(im));
+                        }
+                    }
+                } else {
+                    pb.addAll(Tson.members(Tson.valueOf(m)));
+                }
+                grouped.put(name, pb);
             }
         }
         NObjectElementBuilder r = Tson.obj();
@@ -958,7 +995,7 @@ public class CondensedTsonDesugarer {
             return buildObjectSchema(typeValue, SchemaContext.PROPERTY, null, path);
         }
         if ("array".equals(head)) {
-            return buildArraySchema(typeValue, path);
+            return buildArraySchema(typeValue, path, null);
         }
         if (Tson.isPrimitive(head)) {
             NObjectElementBuilder b = Tson.obj();
@@ -1154,7 +1191,8 @@ public class CondensedTsonDesugarer {
         }
         SchemaExtras extras = SchemaExtras.of(member, path, "a schema declaration");
         for (NElementAnnotation a : Tson.annotationsOf(member)) {
-            if (!"description".equals(a.name()) && !"example".equals(a.name()) && !"raw".equals(a.name())) {
+            if (!"description".equals(a.name()) && !"example".equals(a.name())
+                    && !"deprecated".equals(a.name()) && !"raw".equals(a.name())) {
                 diagnostics.error("E_UNKNOWN_ANNOTATION", "annotation @" + a.name() + " is not allowed on a schema declaration", path);
             }
         }
@@ -1172,6 +1210,7 @@ public class CondensedTsonDesugarer {
     private static final class SchemaExtras {
         String description;
         NElement example;
+        NElement deprecated;
 
         static SchemaExtras of(NElement member, String path, String what) {
             SchemaExtras r = new SchemaExtras();
@@ -1182,6 +1221,10 @@ public class CondensedTsonDesugarer {
             NElementAnnotation ea = Tson.annotation(member, "example");
             if (ea != null && ea.param(0).isPresent()) {
                 r.example = ea.param(0).get();
+            }
+            NElementAnnotation ra = Tson.annotation(member, "deprecated");
+            if (ra != null) {
+                r.deprecated = ra.param(0).isPresent() ? ra.param(0).get() : Tson.ofBoolean(true);
             }
             return r;
         }
@@ -1231,7 +1274,7 @@ public class CondensedTsonDesugarer {
         }
         if (asArr != null) {
             if (Tson.isHeaded(value) && "array".equals(Tson.nameOf(value))) {
-                return buildArraySchema(value, path);
+                return buildArraySchema(value, path, extras);
             }
             return Tson.unnamed(value);
         }
@@ -1420,6 +1463,9 @@ public class CondensedTsonDesugarer {
         if (extras.example != null) {
             b.add("example", extras.example);
         }
+        if (extras.deprecated != null && !b.get("deprecated").isPresent()) {
+            b.add("deprecated", extras.deprecated);
+        }
     }
 
     private NElement buildPrimitiveSchema(String type, List<NElement> params, String path, SchemaExtras extras) {
@@ -1435,7 +1481,7 @@ public class CondensedTsonDesugarer {
         return b.build();
     }
 
-    private NElement buildArraySchema(NElement value, String path) {
+    private NElement buildArraySchema(NElement value, String path, SchemaExtras extras) {
         NObjectElementBuilder b = Tson.obj();
         b.add("type", Tson.str("array"));
         List<NElement> children = Tson.members(value);
@@ -1450,6 +1496,9 @@ public class CondensedTsonDesugarer {
             if (pair != null) {
                 b.add(pair.key().asStringValue().get(), pair.value());
             }
+        }
+        if (extras != null) {
+            addSchemaExtras(b, extras, path);
         }
         return b.build();
     }
@@ -1484,6 +1533,7 @@ public class CondensedTsonDesugarer {
         List<String> extraRequired = new ArrayList<>();
         String paramDescription = null;
         NElement paramExample = null;
+        NElement paramDeprecated = null;
         for (NElement p : params) {
             NPairElement pair = p.asPair().orNull();
             if (pair == null) {
@@ -1500,6 +1550,8 @@ public class CondensedTsonDesugarer {
             } else if ("example".equals(k)) {
                 // the example of the schema itself, as the @example annotation gives it
                 paramExample = pair.value();
+            } else if ("deprecated".equals(k)) {
+                paramDeprecated = pair.value();
             } else {
                 attrs.add(pair);
             }
@@ -1508,6 +1560,7 @@ public class CondensedTsonDesugarer {
         // the description and the example may come from the annotations or from a @metadata member
         String description = extras == null ? null : extras.description;
         NElement example = extras == null ? null : extras.example;
+        NElement deprecated = extras == null ? null : extras.deprecated;
         if (description != null && paramDescription != null) {
             diagnostics.error("E_DUPLICATE_ATTR", "attribute 'description' is given more than once", path);
         } else if (description == null) {
@@ -1517,6 +1570,11 @@ public class CondensedTsonDesugarer {
             diagnostics.error("E_DUPLICATE_ATTR", "attribute 'example' is given more than once", path);
         } else if (example == null) {
             example = paramExample;
+        }
+        if (deprecated != null && paramDeprecated != null) {
+            diagnostics.error("E_DUPLICATE_ATTR", "attribute 'deprecated' is given more than once", path);
+        } else if (deprecated == null) {
+            deprecated = paramDeprecated;
         }
         List<NElement> metaMembers = new ArrayList<>();
         for (NElement m : metaMembersOf(o)) {
@@ -1533,6 +1591,12 @@ public class CondensedTsonDesugarer {
                 } else {
                     example = Tson.valueOf(m);
                 }
+            } else if ("deprecated".equals(k)) {
+                if (deprecated != null) {
+                    diagnostics.error("E_DUPLICATE_ATTR", "attribute 'deprecated' is given more than once", path);
+                } else {
+                    deprecated = Tson.valueOf(m);
+                }
             } else {
                 metaMembers.add(m);
             }
@@ -1547,6 +1611,9 @@ public class CondensedTsonDesugarer {
         }
         if (description != null) {
             b.add("description", Tson.str(description));
+        }
+        if (deprecated != null) {
+            b.add("deprecated", deprecated);
         }
         for (NElement m : metaMembers) {
             b.add(attrNameOf(m), Tson.valueOf(m));
@@ -1603,7 +1670,8 @@ public class CondensedTsonDesugarer {
         }
         for (NElementAnnotation a : Tson.annotationsOf(m)) {
             if (!"required".equals(a.name()) && !"metadata".equals(a.name())
-                    && !"description".equals(a.name()) && !"example".equals(a.name())) {
+                    && !"description".equals(a.name()) && !"example".equals(a.name())
+                    && !"deprecated".equals(a.name())) {
                 diagnostics.error("E_UNKNOWN_ANNOTATION", "annotation @" + a.name() + " is not allowed on a property", path);
             }
         }
