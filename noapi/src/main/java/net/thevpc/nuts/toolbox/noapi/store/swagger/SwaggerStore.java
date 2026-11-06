@@ -216,7 +216,8 @@ public class SwaggerStore implements NoApiStore {
         return all;
     }
 
-    private List<MParam> _parseParamList(List<NElement> rr, String url, String paramType, List<TypeCrossRef> typeCrossRefs) {
+    private List<MParam> _parseParamList(List<NElement> rr, Map<String, TypeInfo> allTypes,
+                                        String method, String url, String paramType, List<TypeCrossRef> typeCrossRefs) {
         List<MParam> all = new ArrayList<>();
         for (NElement item : rr) {
             MParam h = new MParam();
@@ -255,9 +256,13 @@ public class SwaggerStore implements NoApiStore {
                 h.examples.add(new MExample(null, example));
             }
             h.smartTypeName = getSmartTypeName(vobj);
+            NObjectElement schemaObj = vobj.getObject("schema").orNull();
+            h.schema = new OpenApiParser().parseOneType(schemaObj == null ? vobj : schemaObj, null, allTypes);
             if (url != null) {
+                String refType = h.schema != null && h.schema.getRef() != null
+                        ? h.schema.getRef() : h.typeName;
                 typeCrossRefs.add(new TypeCrossRef(
-                        h.typeName, url, paramType
+                        refType, method, url, paramType
                 ));
             }
             all.add(h);
@@ -458,14 +463,14 @@ public class SwaggerStore implements NoApiStore {
         cc.pathParameters = new ArrayList<>();
 
         if (dparameters != null) {
-            cc.headerParameters.addAll(_parseParamList(dparameters.stream().filter(x -> "header".equals(x.asObject().get().getStringValue("in").orNull())).collect(Collectors.toList()), url, "Header Parameter", typeCrossRefs));
-            cc.queryParameters.addAll(_parseParamList(dparameters.stream().filter(x -> "query".equals(x.asObject().get().getStringValue("in").orNull())).collect(Collectors.toList()), url, "Query Parameter", typeCrossRefs));
-            cc.pathParameters.addAll(_parseParamList(dparameters.stream().filter(x -> "path".equals(x.asObject().get().getStringValue("in").orNull())).collect(Collectors.toList()), url, "Path Parameter", typeCrossRefs));
+            cc.headerParameters.addAll(_parseParamList(dparameters.stream().filter(x -> "header".equals(x.asObject().get().getStringValue("in").orNull())).collect(Collectors.toList()), allTypes, method, url, "Header Parameter", typeCrossRefs));
+            cc.queryParameters.addAll(_parseParamList(dparameters.stream().filter(x -> "query".equals(x.asObject().get().getStringValue("in").orNull())).collect(Collectors.toList()), allTypes, method, url, "Query Parameter", typeCrossRefs));
+            cc.pathParameters.addAll(_parseParamList(dparameters.stream().filter(x -> "path".equals(x.asObject().get().getStringValue("in").orNull())).collect(Collectors.toList()), allTypes, method, url, "Path Parameter", typeCrossRefs));
         }
 
-        cc.headerParameters.addAll(_parseParamList(parameters.stream().filter(x -> "header".equals(x.asObject().get().getStringValue("in").orNull())).collect(Collectors.toList()), url, "Header Parameter", typeCrossRefs));
-        cc.queryParameters.addAll(_parseParamList(parameters.stream().filter(x -> "query".equals(x.asObject().get().getStringValue("in").orNull())).collect(Collectors.toList()), url, "Query Parameter", typeCrossRefs));
-        cc.pathParameters.addAll(_parseParamList(parameters.stream().filter(x -> "path".equals(x.asObject().get().getStringValue("in").orNull())).collect(Collectors.toList()), url, "Path Parameter", typeCrossRefs));
+        cc.headerParameters.addAll(_parseParamList(parameters.stream().filter(x -> "header".equals(x.asObject().get().getStringValue("in").orNull())).collect(Collectors.toList()), allTypes, method, url, "Header Parameter", typeCrossRefs));
+        cc.queryParameters.addAll(_parseParamList(parameters.stream().filter(x -> "query".equals(x.asObject().get().getStringValue("in").orNull())).collect(Collectors.toList()), allTypes, method, url, "Query Parameter", typeCrossRefs));
+        cc.pathParameters.addAll(_parseParamList(parameters.stream().filter(x -> "path".equals(x.asObject().get().getStringValue("in").orNull())).collect(Collectors.toList()), allTypes, method, url, "Path Parameter", typeCrossRefs));
 
         NObjectElement requestBody = call.getObject("requestBody").orNull();
         if (requestBody != null && !requestBody.isEmpty()) {
@@ -483,6 +488,11 @@ public class SwaggerStore implements NoApiStore {
                 String description = iiv.getStringValue("description").orNull();
                 NElement example = iiv.get("example").orNull();
                 vv.type = o;
+                if (o != null && o.getRef() != null) {
+                    typeCrossRefs.add(new TypeCrossRef(
+                            o.getRef(), method, url, "Request Body"
+                    ));
+                }
                 cc.requestBody.contents.add(vv);
                 if (o!=null && o.getRef() != null) {
                     NElement s = schemas.get(o.getRef()).orNull();
@@ -522,7 +532,7 @@ public class SwaggerStore implements NoApiStore {
                         response.contents.add(respContent);
                         if (o!=null && o.getUserType()!=null && o.getUserType().equals("$ref")) {
                             typeCrossRefs.add(new TypeCrossRef(
-                                    o.getRef(),
+                                    o.getRef(), method,
                                     url, "Response (" + s + ")"
                             ));
                             respContent.setContentType(content.key().asStringValue().get());

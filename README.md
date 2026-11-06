@@ -86,6 +86,19 @@ In the generated document and PDF the flag is shown explicitly as `[DEPRECATED]`
 operation title, parameter name, header name, schema type title and field name. The
 [`examples/deprecated`](examples/deprecated) folder contains the same API in JSON, YAML and TSON.
 
+### Enabled operations and schema types
+
+Operations with `enabled: false` (or `enabled` evaluating to false) are omitted from the generated
+document. The `SCHEMA TYPES` section follows the same rule:
+
+* a schema referenced by at least one enabled operation is shown;
+* a schema referenced only by disabled operations is hidden;
+* a schema referenced by another shown schema is kept visible (transitively);
+* a schema that is not referenced by any path is still shown, because it is not tied to a disabled
+  path;
+* the “This type is used in” list only mentions enabled operations, even when the same schema is
+  also used by a disabled operation on the same path or on another path.
+
 ### Self-verification
 
 The condensed writer never emits unverified text. After writing condensed TSON, NoAPI re-reads it

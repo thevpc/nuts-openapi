@@ -25,6 +25,11 @@ public class MainMarkdownGenerator {
     private OpenApiParser openApiParser = new OpenApiParser();
     private int maxExampleInlineLength = 80;
     private Map<String,TypeInfo> usedTypes = new HashMap<>();
+    /**
+     * Keys ({@code method + " " + url}) of the operations that are rendered. A type cross
+     * reference from a disabled operation is not part of the "used in" list.
+     */
+    private Set<String> enabledOperations = new LinkedHashSet<>();
 
     public MainMarkdownGenerator(AppMessages msg) {
         this.msg = msg;
@@ -66,6 +71,7 @@ public class MainMarkdownGenerator {
         _fillServerList(rmodel, all);
         _fillHeaders(rmodel, all);
         _fillSecuritySchemes(rmodel, all);
+        _prepareSchemaTypes(rmodel);
         _fillApiPaths(rmodel, all);
         _fillSchemaTypes(rmodel, all);
         doc.setContent(MdFactory.seq(all));
@@ -359,6 +365,134 @@ public class MainMarkdownGenerator {
     }
 
 
+    /**
+     * Computes the component schema types that are rendered and the set of rendered operations.
+     *
+     * <p>A schema that is referenced only by disabled operations is hidden. A schema that is used
+     * by another rendered schema is kept (transitive closure), even when it has no direct enabled
+     * operation reference. A schema that is not referenced by any operation at all is still shown,
+     * because it is a declaration of the document and not tied to a disabled path.</p>
+     */
+    private void _prepareSchemaTypes(MFileInfo rmodel) {
+        Map<String, TypeInfo> allTypes = rmodel.model.getTypesMap();
+        Set<String> pathRoots = new LinkedHashSet<>();
+        Set<String> enabledRoots = new LinkedHashSet<>();
+        enabledOperations.clear();
+        for (MPath path : rmodel.model.getPaths()) {
+            if (path == null || path.calls == null) {
+                continue;
+            }
+            for (MCall call : path.calls) {
+                Set<String> refs = new LinkedHashSet<>();
+                collectTypeRefs(call, refs);
+                pathRoots.addAll(refs);
+                if (rmodel.templater.evalBoolean(call.enabled, true)) {
+                    enabledRoots.addAll(refs);
+                    enabledOperations.add(operationKey(call.method, path.url));
+                }
+            }
+        }
+        Set<String> pathUsed = schemaClosure(allTypes, pathRoots);
+        Set<String> enabledUsed = schemaClosure(allTypes, enabledRoots);
+        Set<String> shown = new LinkedHashSet<>(enabledUsed);
+        // declarations that are not used by any path are not hidden by a disabled path
+        for (String name : allTypes.keySet()) {
+            if (!pathUsed.contains(name)) {
+                addSchemaClosure(name, allTypes, shown);
+            }
+        }
+        usedTypes.clear();
+        for (String name : shown) {
+            TypeInfo type = allTypes.get(name);
+            if (type != null) {
+                usedTypes.put(name, type);
+            }
+        }
+    }
+
+    private static void collectTypeRefs(MCall call, Set<String> refs) {
+        if (call == null) {
+            return;
+        }
+        collectParamRefs(call.headerParameters, refs);
+        collectParamRefs(call.queryParameters, refs);
+        collectParamRefs(call.pathParameters, refs);
+        if (call.requestBody != null && call.requestBody.contents != null) {
+            for (MCall.Content content : call.requestBody.contents) {
+                collectTypeRefs(content == null ? null : content.type, refs);
+            }
+        }
+        if (call.responses != null) {
+            for (MCall.Response response : call.responses) {
+                if (response != null && response.contents != null) {
+                    for (MCall.Content content : response.contents) {
+                        collectTypeRefs(content == null ? null : content.type, refs);
+                    }
+                }
+            }
+        }
+    }
+
+    private static void collectParamRefs(List<MParam> params, Set<String> refs) {
+        if (params == null) {
+            return;
+        }
+        for (MParam param : params) {
+            if (param != null) {
+                collectTypeRefs(param.schema, refs);
+            }
+        }
+    }
+
+    private static void collectTypeRefs(TypeInfo type, Set<String> refs) {
+        if (type == null) {
+            return;
+        }
+        if (!NBlankable.isBlank(type.getRef())) {
+            refs.add(type.getRef());
+        }
+        collectTypeRefs(type.getArrayComponentType(), refs);
+        if (type.getFields() != null) {
+            for (FieldInfo field : type.getFields()) {
+                collectTypeRefs(field == null ? null : field.schema, refs);
+            }
+        }
+    }
+
+    private static Set<String> schemaClosure(Map<String, TypeInfo> allTypes, Set<String> roots) {
+        Set<String> out = new LinkedHashSet<>();
+        for (String root : roots) {
+            addSchemaClosure(root, allTypes, out);
+        }
+        return out;
+    }
+
+    private static void addSchemaClosure(String name, Map<String, TypeInfo> allTypes, Set<String> out) {
+        if (NBlankable.isBlank(name) || !out.add(name)) {
+            return;
+        }
+        TypeInfo type = allTypes.get(name);
+        if (type == null) {
+            return;
+        }
+        Set<String> refs = new LinkedHashSet<>();
+        collectTypeRefs(type, refs);
+        for (String ref : refs) {
+            addSchemaClosure(ref, allTypes, out);
+        }
+    }
+
+    private static String operationKey(String method, String url) {
+        return (method == null ? "" : method.trim().toLowerCase()) + " " + (url == null ? "" : url);
+    }
+
+    private boolean isEnabledTypeCrossRef(TypeCrossRef ref) {
+        if (ref.getMethod() == null) {
+            return true;
+        }
+        return enabledOperations.contains(operationKey(ref.getMethod(), ref.getUrl()));
+    }
+
     private void _fillSchemaTypes(MFileInfo rmodel, List<MdElement> all) {
         Map<String, TypeInfo> allTypes = new LinkedHashMap<>(rmodel.model.getTypesMap());
         if (allTypes.isEmpty()) {
@@ -367,6 +501,10 @@ public class MainMarkdownGenerator {
         all.add(MdFactory.endParagraph());
         all.add(MdFactory.title(2, msg.get("SCHEMA_TYPES").get()));
         for (Map.Entry<String, TypeInfo> entry : allTypes.entrySet()) {
+            if (!usedTypes.containsKey(entry.getKey())) {
+                // used only by disabled operations (or by a schema that is itself hidden)
+                continue;
+            }
             TypeInfo v = entry.getValue();
             all.add(MdFactory.endParagraph());
             all.add(MdFactory.title(3, entry.getKey()
@@ -391,7 +529,9 @@ public class MainMarkdownGenerator {
                     all.add(NoApiUtils.asText("."));
                 }
             }
-            List<TypeCrossRef> types = rmodel.model.getTypeCrossRefs().stream().filter(x -> x.getType().equals(v.getName()))
+            List<TypeCrossRef> types = rmodel.model.getTypeCrossRefs().stream()
+                    .filter(x -> x.getType().equals(v.getName()))
+                    .filter(this::isEnabledTypeCrossRef)
                     .distinct()
                     .collect(Collectors.toList());
             if (types.size() > 0) {
