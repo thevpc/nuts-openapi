@@ -1,0 +1,44 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Enum Schema Demo",
+    "version": "1.0.0",
+    "description": "Small API used to demonstrate that enum and other non-object schema types are listed in the generated document."
+  },
+  "custom": {
+    "openapi-document-id": "enum-demo"
+  },
+  "paths": {
+    "/colors": {
+      "get": {
+        "summary": "List the available colors",
+        "responses": {
+          "200": {
+            "description": "The available colors.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Color"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "Color": {
+        "type": "string",
+        "description": "The color options available.",
+        "enum": [
+          "RED",
+          "GREEN",
+          "BLUE",
+          "YELLOW"
+        ]
+      }
+    }
+  }
+}

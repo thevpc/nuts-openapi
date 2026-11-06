@@ -608,6 +608,8 @@ Round trips are identical **except**:
   members keep their order).
 - **C10** a schema's `deprecated` member is placed last, matching the order produced when the
   `@deprecated` annotation is read back.
+- **C11** an enum schema is ordered `type`, `enum`, then its other members, matching the condensed
+  `enum(values: […])` sugar.
 
 Everything else must be identical, including key order of `properties`, `paths`, `schemas`,
 `changes`, `responses`, and array order. The sugar of §3 (`enum`, `timestamp`) and the security

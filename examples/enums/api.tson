@@ -1,0 +1,22 @@
+@openapi("3.0.3")
+
+info {
+  id: enum-demo
+  title: "Enum Schema Demo"
+  version: "1.0.0"
+  description: "Small API used to demonstrate that enum and other non-object schema types are listed in the generated document."
+}
+
+paths {
+
+  @summary("List the available colors")
+  GET("/colors") {
+    out(200): Color(json description: "The available colors.")
+  }
+}
+
+components {
+  schemas {
+    Color: enum(values: [RED GREEN BLUE YELLOW] description: "The color options available.")
+  }
+}

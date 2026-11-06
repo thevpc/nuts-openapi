@@ -28,6 +28,8 @@ import java.util.*;
  *   <li><b>C10</b> a schema's {@code deprecated} member is placed last, so that the annotation
  *   form of the condensed writer (which is not tied to a position inside the schema) and the plain
  *   member form compare equal. Only Schema Objects are affected.</li>
+ *   <li><b>C11</b> in a schema that has an {@code enum}, {@code type} comes first and {@code enum}
+ *   second, matching the order produced by the condensed {@code enum(values: […])} sugar.</li>
  * </ul>
  */
 public final class NoApiCanonicalizer {
@@ -144,6 +146,7 @@ public final class NoApiCanonicalizer {
             }
             r = reorderRequired(r);
             if (asSchema) {
+                r = moveEnumAfterType(r);
                 r = moveDeprecatedLast(r);
             }
             if (asParameter) {
@@ -172,6 +175,28 @@ public final class NoApiCanonicalizer {
             return b.build();
         }
         return e;
+    }
+
+    /**
+     * C11: an enum schema is ordered {@code type}, {@code enum}, then the other members, matching
+     * the order in which the condensed {@code enum(values: […])} sugar is read back.
+     */
+    private static NObjectElement moveEnumAfterType(NObjectElement o) {
+        NElement type = o.get("type").orNull();
+        NElement enumValues = o.get("enum").orNull();
+        if (type == null || enumValues == null) {
+            return o;
+        }
+        NObjectElementBuilder b = Tson.obj();
+        b.add("type", type);
+        b.add("enum", enumValues);
+        for (NElement m : Tson.members(o)) {
+            String k = Tson.nameOf(m);
+            if (!"type".equals(k) && !"enum".equals(k)) {
+                b.add(k, Tson.valueOf(m));
+            }
+        }
+        return b.build();
     }
 
     /**

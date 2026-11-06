@@ -10,6 +10,8 @@
 * Supports change list generation
 * Marks deprecated operations, parameters, headers, schemas and properties (`deprecated` in
   JSON/YAML, `@deprecated` in TSON) and shows them explicitly in the generated document and PDF
+* Lists every schema type under **SCHEMA TYPES**, including object, enum, primitive, array and
+  reference schemas
 * Conversion between JSON / YAML / TSON (`noapi convert`)
 
 ## Input formats
@@ -109,5 +111,7 @@ comparison):
 * **C9** the members of an `apiKey` security scheme are ordered `type`, `name`, `in`.
 * **C10** a schema's `deprecated` member is placed last, matching the order produced when the
   condensed `@deprecated` annotation is read back.
+* **C11** an enum schema is ordered `type`, `enum`, then its other members, matching the condensed
+  `enum(values: […])` sugar.
 
 Everything else must be identical, including key order and array order.

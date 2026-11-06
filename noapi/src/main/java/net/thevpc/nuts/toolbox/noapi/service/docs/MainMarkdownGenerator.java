@@ -361,23 +361,6 @@ public class MainMarkdownGenerator {
 
     private void _fillSchemaTypes(MFileInfo rmodel, List<MdElement> all) {
         Map<String, TypeInfo> allTypes = new LinkedHashMap<>(rmodel.model.getTypesMap());
-//        for (Map.Entry<String, TypeInfo> entry : allTypes.entrySet()) {
-//            TypeInfo v = entry.getValue();
-//            if ("object".equals(v.getType())) {
-//                for (FieldInfo p : v.getFields()) {
-//                    markAsUsedType(p.schema,rmodel);
-//                }
-//            }
-//        }
-
-
-
-        for (Iterator<Map.Entry<String, TypeInfo>> iterator = allTypes.entrySet().iterator(); iterator.hasNext(); ) {
-            Map.Entry<String, TypeInfo> e = iterator.next();
-            if (!usedTypes.containsKey(e.getKey())) {
-               // iterator.remove();
-            }
-        }
         if (allTypes.isEmpty()) {
             return;
         }
@@ -385,50 +368,50 @@ public class MainMarkdownGenerator {
         all.add(MdFactory.title(2, msg.get("SCHEMA_TYPES").get()));
         for (Map.Entry<String, TypeInfo> entry : allTypes.entrySet()) {
             TypeInfo v = entry.getValue();
-            if ("object".equals(v.getType())) {
+            all.add(MdFactory.endParagraph());
+            all.add(MdFactory.title(3, entry.getKey()
+                    + (v.isDeprecated() ? (" [" + msg.get("DEPRECATED").get() + "]") : "")));
+            String d1 = v.getDescription();
+            String d2 = v.getSummary();
+            if (!NBlankable.isBlank(d1) && !NBlankable.isBlank(d2)) {
+                all.add(NoApiUtils.asText(d1));
+                all.add(MdFactory.text(". "));
+                all.add(NoApiUtils.asText(d2));
+                if (!NBlankable.isBlank(d2) && !d2.endsWith(".")) {
+                    all.add(MdFactory.text("."));
+                }
+            } else if (!NBlankable.isBlank(d1)) {
+                all.add(NoApiUtils.asText(d1));
+                if (!NBlankable.isBlank(d1) && !d1.endsWith(".")) {
+                    all.add(MdFactory.text("."));
+                }
+            } else if (!NBlankable.isBlank(d2)) {
+                all.add(NoApiUtils.asText(d2));
+                if (!NBlankable.isBlank(d2) && !d2.endsWith(".")) {
+                    all.add(NoApiUtils.asText("."));
+                }
+            }
+            List<TypeCrossRef> types = rmodel.model.getTypeCrossRefs().stream().filter(x -> x.getType().equals(v.getName()))
+                    .distinct()
+                    .collect(Collectors.toList());
+            if (types.size() > 0) {
                 all.add(MdFactory.endParagraph());
-                all.add(MdFactory.title(3, entry.getKey()
-                        + (v.isDeprecated() ? (" [" + msg.get("DEPRECATED").get() + "]") : "")));
-                String d1 = v.getDescription();
-                String d2 = v.getSummary();
-                if (!NBlankable.isBlank(d1) && !NBlankable.isBlank(d2)) {
-                    all.add(NoApiUtils.asText(d1));
-                    all.add(MdFactory.text(". "));
-                    all.add(NoApiUtils.asText(d2));
-                    if (!NBlankable.isBlank(d2) && !d2.endsWith(".")) {
-                        all.add(MdFactory.text("."));
-                    }
-                } else if (!NBlankable.isBlank(d1)) {
-                    all.add(NoApiUtils.asText(d1));
-                    if (!NBlankable.isBlank(d1) && !d1.endsWith(".")) {
-                        all.add(MdFactory.text("."));
-                    }
-                } else if (!NBlankable.isBlank(d2)) {
-                    all.add(NoApiUtils.asText(d2));
-                    if (!NBlankable.isBlank(d2) && !d2.endsWith(".")) {
-                        all.add(NoApiUtils.asText("."));
-                    }
+                all.add(NoApiUtils.asText(msg.get("ThisTypeIsUsedIn").get()));
+                all.add(MdFactory.endParagraph());
+                for (TypeCrossRef type : types) {
+                    all.add(MdFactory.ul(1,
+                            MdFactory.ofListOrEmpty(
+                                    new MdElement[]{
+                                            MdFactory.codeBacktick3("", type.getUrl()),
+                                            NoApiUtils.asText(" (" + type.getLocation() + ")"),
+                                    }
+                            )
+                    ));
                 }
-                List<TypeCrossRef> types = rmodel.model.getTypeCrossRefs().stream().filter(x -> x.getType().equals(v.getName()))
-                        .distinct()
-                        .collect(Collectors.toList());
-                if (types.size() > 0) {
-                    all.add(MdFactory.endParagraph());
-                    all.add(NoApiUtils.asText(msg.get("ThisTypeIsUsedIn").get()));
-                    all.add(MdFactory.endParagraph());
-                    for (TypeCrossRef type : types) {
-                        all.add(MdFactory.ul(1,
-                                MdFactory.ofListOrEmpty(
-                                        new MdElement[]{
-                                                MdFactory.codeBacktick3("", type.getUrl()),
-                                                NoApiUtils.asText(" (" + type.getLocation() + ")"),
-                                        }
-                                )
-                        ));
-                    }
-                    all.add(MdFactory.endParagraph());
-                }
+                all.add(MdFactory.endParagraph());
+            }
 
+            if ("object".equals(v.getType())) {
                 MdTableBuilder mdTableBuilder = MdFactory.table().addColumns(
                         MdFactory.column().setName(msg.get("NAME").get()),
                         MdFactory.column().setName(msg.get("TYPE").get()),
@@ -446,6 +429,12 @@ public class MainMarkdownGenerator {
                     );
                 }
                 all.add(mdTableBuilder.build());
+            } else {
+                // enums, primitives, arrays, references, … are schema types too; show their type
+                // expression (an enum includes its allowed values)
+                all.add(MdFactory.endParagraph());
+                all.add(NoApiUtils.asText(msg.get("TYPE").get() + ": "));
+                all.add(codeElementTypeInfo(v, false, "", rmodel, msg));
             }
             for (MExample example : v.getExamples()) {
                 if (!NBlankable.isBlank(example.value)) {
