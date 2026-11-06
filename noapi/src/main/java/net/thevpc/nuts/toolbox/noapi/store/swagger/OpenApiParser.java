@@ -100,6 +100,7 @@ public class OpenApiParser {
         tt.setSmartName(typeType);
         tt.setDescription(v.getStringValue("description").orNull());
         tt.setSummary(v.getStringValue("summary").orNull());
+        tt.setDeprecated(v.getBooleanValue("deprecated").orElse(false));
         tt.getExamples().add(new MExample(null, value.get("example").orNull()));
         if (!NBlankable.isBlank(value.getStringValue("$ref").orNull())) {
             tt.setRefLong(value.getStringValue("$ref").orNull());

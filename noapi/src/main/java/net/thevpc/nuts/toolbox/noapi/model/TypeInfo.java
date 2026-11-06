@@ -11,6 +11,7 @@ public class TypeInfo {
     private String summary;
     private String type;
     private String userType;
+    private boolean deprecated;
     private String format;
     private String minLength;
     private String maxLength;
@@ -72,6 +73,15 @@ public class TypeInfo {
 
     public TypeInfo setUserType(String userType) {
         this.userType = userType;
+        return this;
+    }
+
+    public boolean isDeprecated() {
+        return deprecated;
+    }
+
+    public TypeInfo setDeprecated(boolean deprecated) {
+        this.deprecated = deprecated;
         return this;
     }
 

@@ -387,7 +387,8 @@ public class MainMarkdownGenerator {
             TypeInfo v = entry.getValue();
             if ("object".equals(v.getType())) {
                 all.add(MdFactory.endParagraph());
-                all.add(MdFactory.title(3, entry.getKey()));
+                all.add(MdFactory.title(3, entry.getKey()
+                        + (v.isDeprecated() ? (" [" + msg.get("DEPRECATED").get() + "]") : "")));
                 String d1 = v.getDescription();
                 String d2 = v.getSummary();
                 if (!NBlankable.isBlank(d1) && !NBlankable.isBlank(d2)) {

@@ -432,7 +432,7 @@ Absent = inherit global; `[]` or `@security()` = no auth
 | `@description` | operation, schema, property | string | Description |
 | `@operationId` | operation | string | Operation ID |
 | `@tags` | operation | strings... | Tags array |
-| `@deprecated` | operation | optional bool | Deprecated flag |
+| `@deprecated` | operation, path, parameter, header, schema, property | optional bool | Deprecated flag |
 | `@enabled` | operation, path | string/expression | NoAPI enabled |
 | `@security` | operation | security requirements | Security requirements |
 | `@example` | schema, property | object | Example value |

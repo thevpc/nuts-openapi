@@ -1013,6 +1013,7 @@ public class CondensedTsonDesugarer {
     private NElement desugarParameter(NElement member, String opPath, String path) {
         String name = Tson.nameOf(member);
         String location = null;
+        NElement deprecated = null;
         for (NElementAnnotation a : Tson.annotationsOf(member)) {
             if (LOCATION_ANNOTATIONS.contains(a.name())) {
                 if ("body".equals(a.name())) {
@@ -1022,6 +1023,8 @@ public class CondensedTsonDesugarer {
                 location = "param".equals(a.name())
                         ? (opPath != null && opPath.contains("{" + name + "}") ? "path" : "query")
                         : a.name();
+            } else if ("deprecated".equals(a.name())) {
+                deprecated = a.param(0).isPresent() ? a.param(0).get() : Tson.ofBoolean(true);
             } else if (!"required".equals(a.name())) {
                 diagnostics.error("E_UNKNOWN_ANNOTATION", "annotation @" + a.name() + " is not allowed on a parameter", path);
                 return null;
@@ -1046,6 +1049,13 @@ public class CondensedTsonDesugarer {
         }
         // split attrs: description/example stay at parameter level, others go in schema
         splitParameterAttrs(par, schema, typeValue, path);
+        if (deprecated != null) {
+            if (par.get("deprecated").isPresent()) {
+                diagnostics.error("E_DUPLICATE_ATTR", "attribute 'deprecated' is given more than once", path);
+            } else {
+                par.add("deprecated", deprecated);
+            }
+        }
         return par.build();
     }
 
@@ -1832,10 +1842,15 @@ public class CondensedTsonDesugarer {
                 continue;
             }
             NObjectElementBuilder h = Tson.obj();
-            NElementAnnotation req = Tson.annotation(m, "required");
-            if (req != null) {
-                boolean rv = req.param(0).isPresent() ? Tson.asBoolean(req.param(0).get(), true) : true;
-                h.add("required", Tson.ofBoolean(rv));
+            for (NElementAnnotation a : Tson.annotationsOf(m)) {
+                if ("required".equals(a.name())) {
+                    boolean rv = a.param(0).isPresent() ? Tson.asBoolean(a.param(0).get(), true) : true;
+                    h.add("required", Tson.ofBoolean(rv));
+                } else if ("deprecated".equals(a.name())) {
+                    h.add("deprecated", a.param(0).isPresent() ? a.param(0).get() : Tson.ofBoolean(true));
+                } else {
+                    diagnostics.error("E_UNKNOWN_ANNOTATION", "annotation @" + a.name() + " is not allowed on a header", path);
+                }
             }
             NObjectElementBuilder schema = Tson.obj();
             schema.add("type", Tson.str(head));

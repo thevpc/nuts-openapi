@@ -1,0 +1,80 @@
+@openapi("3.0.3")
+
+info {
+  id: deprecated-demo
+  title: "Deprecated Feature Demo"
+  version: "1.0.0"
+  description: "Small API used to demonstrate how NoAPI reports deprecated operations, parameters, headers, schemas and properties."
+}
+
+paths {
+
+  @summary("Get a user")
+  GET("/users/{id}") {
+    parameters [
+      {
+        name: "id"
+        in: "path"
+        required: true
+        schema: {
+          type: "string"
+        }
+      }
+      {
+        name: "legacy"
+        in: "query"
+        deprecated: true
+        description: "Use the current representation instead."
+        schema: {
+          type: "boolean"
+        }
+      }
+    ]
+    out(200): User(json description: "The requested user.")
+  }
+
+  @summary("Delete a user")
+  @deprecated
+  DELETE("/users/{id}") {
+    parameters [
+      {
+        name: "id"
+        in: "path"
+        required: true
+        schema: {
+          type: "string"
+        }
+      }
+    ]
+    out(204): void(description: "The user was deleted.")
+  }
+
+  @deprecated
+  @summary("Read the legacy status")
+  GET("/legacy/status") {
+    out(200): string(json description: "The legacy status.")
+  }
+
+  @deprecated
+  @summary("Update the legacy status")
+  POST("/legacy/status") {
+    out(200): string(json description: "The legacy status was updated.")
+  }
+}
+
+components {
+  schemas {
+    User {
+      @required id: string
+      @deprecated oldEmail: string(description: "Use the contact endpoint instead.")
+      @required displayName: string
+    }
+    @deprecated LegacyUser(description: "Use User instead.") {
+      id: string
+      @deprecated email: string
+    }
+  }
+  headers {
+    @deprecated X-Legacy-Token: string(description: "Use the Authorization header instead.")
+  }
+}

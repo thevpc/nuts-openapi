@@ -18,6 +18,7 @@
 | `@description` | Schema declaration, property | `@description("...")` |
 | `@example` | Schema declaration, property | `@example({ id: "123" })` |
 | `@metadata` | Object body member | `@metadata example: {...}` |
+| `@deprecated` | Parameter, header | `@deprecated` or `@deprecated(false)` |
 | `@required` | Property, parameter, in, header | `@required` or `@required(false)` |
 | `@raw` | Schema declaration | `@raw` before schema |
 

@@ -1,0 +1,98 @@
+openapi: "3.0.3"
+info:
+   title: "Deprecated Feature Demo"
+   version: "1.0.0"
+   description: "Small API used to demonstrate how NoAPI reports deprecated operations, parameters, headers, schemas and properties."
+custom:
+   openapi-document-id: "deprecated-demo"
+paths:
+   "/users/{id}":
+      get:
+         summary: "Get a user"
+         parameters:
+            - 
+               name: "id"
+               in: "path"
+               required: true
+               schema:
+                  type: "string"
+            - 
+               name: "legacy"
+               in: "query"
+               deprecated: true
+               description: "Use the current representation instead."
+               schema:
+                  type: "boolean"
+         responses:
+            "200":
+               description: "The requested user."
+               content:
+                  "application/json":
+                     schema:
+                        $ref: "#/components/schemas/User"
+      delete:
+         summary: "Delete a user"
+         deprecated: true
+         parameters:
+            - 
+               name: "id"
+               in: "path"
+               required: true
+               schema:
+                  type: "string"
+         responses:
+            "204":
+               description: "The user was deleted."
+   "/legacy/status":
+      get:
+         deprecated: true
+         summary: "Read the legacy status"
+         responses:
+            "200":
+               description: "The legacy status."
+               content:
+                  "application/json":
+                     schema:
+                        type: "string"
+      post:
+         deprecated: true
+         summary: "Update the legacy status"
+         responses:
+            "200":
+               description: "The legacy status was updated."
+               content:
+                  "application/json":
+                     schema:
+                        type: "string"
+components:
+   schemas:
+      User:
+         type: "object"
+         properties:
+            id:
+               type: "string"
+            oldEmail:
+               type: "string"
+               description: "Use the contact endpoint instead."
+               deprecated: true
+            displayName:
+               type: "string"
+         required:
+            - "id"
+            - "displayName"
+      LegacyUser:
+         type: "object"
+         description: "Use User instead."
+         properties:
+            id:
+               type: "string"
+            email:
+               type: "string"
+               deprecated: true
+         deprecated: true
+   headers:
+      X-Legacy-Token:
+         deprecated: true
+         description: "Use the Authorization header instead."
+         schema:
+            type: "string"

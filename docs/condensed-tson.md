@@ -251,7 +251,7 @@ path-level keys into the operations.
 | `[@required] in: Type(media… [, attrs])` | request body (the key `in` is reserved for it) |
 | `requestBody: Type(media… [, attrs])` | request body, condensed form (see below) |
 | `requestBody: { … }` | request body, plain OpenAPI form (verbatim) |
-| `[@loc] [@required] name: Type(attrs)` | parameter named `name` |
+| `[@loc] [@required] [@deprecated] name: Type(attrs)` | parameter named `name` |
 | `out(status): Type(media… [, attrs])` | response |
 | `out(status): void [, attrs]` | response without content |
 | `out(status): ResponseName` | response, a reference to `components.responses` (see below) |
@@ -452,6 +452,7 @@ components {
 
   headers {
     @required(false) X-MYAPP-API-VERSION: string(description: "The request API version")
+    @deprecated X-LEGACY-API-VERSION: string(description: "Retired header")
   }
 
   responses {
@@ -470,7 +471,8 @@ components {
   whose value is the parameter name. The form `apiKey(name: … in: …)` is plain OpenAPI vocabulary and
   is rejected in condensed position (`E_APIKEY_ARGS`, with a hint); write the plain form
   `Name { type: apiKey name: … in: header }` if needed.
-- `headers`: `[@required[(bool)]] Name: Type(attrs)` ≡ `{ required, description, schema: { … } }`.
+- `headers`: `[@required[(bool)]] [@deprecated[(bool)]] Name: Type(attrs)` ≡
+  `{ required, deprecated, description, schema: { … } }`.
 - **`components.responses` (new).** Each member is a Response Object, written like the response of
   an operation: `Name: Type(media… [, attrs])`. The names declared here are the ones that an
   operation may reference with `out(status): Name` (§2, *response references*). A member that is a
@@ -489,6 +491,7 @@ components {
 | `@description` | schema declaration, property | string | schema / property `description` |
 | `@example` | schema declaration, property | one value (an object) | schema / property `example` |
 | `@deprecated` | schema declaration, property | optional bool (default `true`) | schema / property `deprecated` |
+| `@deprecated` | parameter, header | optional bool (default `true`) | parameter / header `deprecated` |
 | `@metadata` | member of an object body | none | the member is a schema keyword, not a property (§4.1) |
 | `@required` | property, parameter, `in`, header | optional bool (default `true`) | required flag |
 | `@path` `@query` `@header` `@cookie` `@param` `@body` | operation member | none | input location |
@@ -603,6 +606,8 @@ Round trips are identical **except**:
   (and removed from the info), and the `custom` section is placed right after the `info`.
 - **C9** the members of an `apiKey` security scheme are ordered `type`, `name`, `in` (the other
   members keep their order).
+- **C10** a schema's `deprecated` member is placed last, matching the order produced when the
+  `@deprecated` annotation is read back.
 
 Everything else must be identical, including key order of `properties`, `paths`, `schemas`,
 `changes`, `responses`, and array order. The sugar of §3 (`enum`, `timestamp`) and the security

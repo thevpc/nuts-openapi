@@ -8,8 +8,8 @@
 * Supports custom text
 * Supports conditional generation
 * Supports change list generation
-* Marks deprecated operations, parameters and properties (`deprecated` in JSON/YAML, `@deprecated`
-  in TSON) and shows them in the generated document
+* Marks deprecated operations, parameters, headers, schemas and properties (`deprecated` in
+  JSON/YAML, `@deprecated` in TSON) and shows them explicitly in the generated document and PDF
 * Conversion between JSON / YAML / TSON (`noapi convert`)
 
 ## Input formats
@@ -66,15 +66,23 @@ Every example of an API document is checked against the constraints of the schem
 and the run continues. With `--strict` (accepted by `convert` and by the pdf generation) the first
 mismatching document aborts the run.
 
-### Deprecated operations and properties
+### Deprecated operations, parameters, headers, schemas and properties
 
-`deprecated` is the OpenAPI 3.0 flag (Operation Object and Schema Object). NoAPI also accepts it on a
-path item and pushes it down into each operation (canonicalization C3), so the whole path can be
-retired at once. In condensed TSON the flag is written as the `@deprecated` annotation — on an
-operation head, on a path item, on a schema declaration or on a property — and
-`@deprecated(false)` writes an explicit false; the writer keeps that annotation form. In the
-generated document the flag is shown as `[DEPRECATED]` next to the operation title and to the field
-name. In JSON/YAML only the plain `deprecated: true` pair form is read.
+`deprecated` is the OpenAPI 3.0 flag. NoAPI reads it in all supported formats:
+
+* **JSON / YAML** — the plain `deprecated: true` (or `false`) pair, on Operation, Parameter, Header
+  and Schema Objects.
+* **TSON** — either the plain pair or the `@deprecated` annotation. The annotation is accepted on an
+  operation head, on a path item, on a parameter, on a header, on a schema declaration and on a
+  property. `@deprecated(false)` writes an explicit false and the condensed writer keeps that
+  explicit value.
+
+NoAPI also accepts `deprecated` on a path item and pushes it down into each operation
+(canonicalization C3), so the whole path can be retired at once.
+
+In the generated document and PDF the flag is shown explicitly as `[DEPRECATED]` next to the
+operation title, parameter name, header name, schema type title and field name. The
+[`examples/deprecated`](examples/deprecated) folder contains the same API in JSON, YAML and TSON.
 
 ### Self-verification
 
@@ -97,5 +105,9 @@ comparison):
 * **C5** `format: "object::X"` ↔ bare `X` only on `object`.
 * **C6** multi-line strings are compared after trimming trailing whitespace on each line.
 * **C7** integer-looking response keys become strings.
+* **C8** the document id is stored in `custom.openapi-document-id`.
+* **C9** the members of an `apiKey` security scheme are ordered `type`, `name`, `in`.
+* **C10** a schema's `deprecated` member is placed last, matching the order produced when the
+  condensed `@deprecated` annotation is read back.
 
 Everything else must be identical, including key order and array order.

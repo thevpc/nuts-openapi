@@ -844,29 +844,50 @@ public class CondensedTsonWriter {
             writePlainMember(name, schema);
             return;
         }
-        String ann = deprecatedAnnotation(o);
         if (!canCondenseSchema(o)) {
-            line(ann + "@raw " + key(name) + ": " + plainValue(schema, indent));
+            // @raw carries the whole schema; annotations on it would be ignored, and the
+            // deprecated flag is already part of the verbatim value.
+            line("@raw " + key(name) + ": " + plainValue(schema, indent));
             return;
         }
+        String ann = deprecatedAnnotation(o);
+        NObjectElement condensed = schemaWithoutDeprecated(o);
         if ("object".equals(Tson.asString(o.get("type").orNull())) && isBareToken(name)) {
             // the declaration of an object schema: LoginRequest(description: "…") { … }
-            line(ann + objectExpr(o, name));
+            line(ann + objectExpr(condensed, name));
             return;
         }
-        writeSchemaMember(ann, name, schema);
+        writeSchemaMember(ann, name, condensed);
     }
 
     /**
      * The {@code @deprecated} annotation of a schema written as a member or a declaration; empty
-     * when the schema is not deprecated.
+     * when the schema has no {@code deprecated} member. An explicit {@code false} is kept.
      */
     private static String deprecatedAnnotation(NObjectElement o) {
         NElement d = o.get("deprecated").orNull();
-        if (d == null || !Tson.asBoolean(d, false)) {
+        if (d == null) {
             return "";
         }
-        return "@deprecated ";
+        return Tson.asBoolean(d, false) ? "@deprecated " : "@deprecated(false) ";
+    }
+
+    /**
+     * The same schema without its top-level {@code deprecated} member. The caller writes that flag
+     * as an annotation, so keeping the member too would duplicate it when the text is read back.
+     * Nested schemas (array items, properties, …) keep their own flag.
+     */
+    private static NObjectElement schemaWithoutDeprecated(NObjectElement o) {
+        if (!o.get("deprecated").isPresent()) {
+            return o;
+        }
+        NObjectElementBuilder b = Tson.obj();
+        for (NElement m : Tson.members(o)) {
+            if (!"deprecated".equals(Tson.nameOf(m))) {
+                b.add(Tson.nameOf(m), Tson.valueOf(m));
+            }
+        }
+        return b.build();
     }
 
     /**
@@ -1000,6 +1021,10 @@ public class CondensedTsonWriter {
                 } else {
                     ann.append("@required(false) ");
                 }
+            }
+            NElement deprecated = ho.get("deprecated").orNull();
+            if (deprecated != null) {
+                ann.append(Tson.asBoolean(deprecated, false) ? "@deprecated " : "@deprecated(false) ");
             }
             NElement description = ho.get("description").orNull();
             List<String> attrs = new ArrayList<>();
@@ -1138,8 +1163,10 @@ public class CondensedTsonWriter {
                 p.append("@required ");
             }
             NObjectElement po = pschema.asObject().orNull();
-            if (po != null && Tson.asBoolean(po.get("deprecated").orNull(), false)) {
-                p.append("@deprecated ");
+            NElement deprecated = po == null ? null : po.get("deprecated").orNull();
+            if (deprecated != null) {
+                p.append(Tson.asBoolean(deprecated, false) ? "@deprecated " : "@deprecated(false) ");
+                pschema = schemaWithoutDeprecated(po);
             }
             p.append(key(pname)).append(": ").append(schemaExpr(pschema));
             s.append(indentStr()).append(p).append("\n");

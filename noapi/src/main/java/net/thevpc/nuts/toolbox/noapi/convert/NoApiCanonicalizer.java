@@ -25,6 +25,9 @@ import java.util.*;
  *   {@code info.id} member is moved there (and removed from the info).</li>
  *   <li><b>C9</b> the members of an {@code apiKey} security scheme are ordered
  *   {@code type}, {@code name}, {@code in} (the other members keep their order).</li>
+ *   <li><b>C10</b> a schema's {@code deprecated} member is placed last, so that the annotation
+ *   form of the condensed writer (which is not tied to a position inside the schema) and the plain
+ *   member form compare equal. Only Schema Objects are affected.</li>
  * </ul>
  */
 public final class NoApiCanonicalizer {
@@ -111,10 +114,14 @@ public final class NoApiCanonicalizer {
     }
 
     private static NElement canon(NElement e, String parentKey) {
-        return canon(e, parentKey, false);
+        return canon(e, parentKey, false, false);
     }
 
     private static NElement canon(NElement e, String parentKey, boolean asParameter) {
+        return canon(e, parentKey, asParameter, false);
+    }
+
+    private static NElement canon(NElement e, String parentKey, boolean asParameter, boolean asSchema) {
         NObjectElement o = e.asObject().orNull();
         if (o != null) {
             NObjectElementBuilder b = Tson.obj();
@@ -124,13 +131,21 @@ public final class NoApiCanonicalizer {
                 if (isDroppable(parentKey, k, v)) {
                     continue;
                 }
-                b.add(k, canon(v, k, false));
+                // the value of properties/schemas is a map whose members are schemas; the other
+                // direct schema positions of an OpenAPI document are listed here
+                boolean childSchema = "properties".equals(parentKey) || "schemas".equals(parentKey)
+                        || "schema".equals(k) || "items".equals(k)
+                        || "additionalProperties".equals(k) || "not".equals(k);
+                b.add(k, canon(v, k, false, childSchema));
             }
             NObjectElement r = b.build();
             if (isPathItem(r)) {
                 r = pushPathFields(r);
             }
             r = reorderRequired(r);
+            if (asSchema) {
+                r = moveDeprecatedLast(r);
+            }
             if (asParameter) {
                 r = moveParamSchema(r);
             }
@@ -148,13 +163,33 @@ public final class NoApiCanonicalizer {
         NArrayElement a = e.asArray().orNull();
         if (a != null) {
             boolean itemsAreParams = "parameters".equals(parentKey);
+            boolean itemsAreSchemas = "items".equals(parentKey)
+                    || "allOf".equals(parentKey) || "oneOf".equals(parentKey) || "anyOf".equals(parentKey);
             NArrayElementBuilder b = Tson.arr();
             for (NElement c : Tson.members(a)) {
-                b.add(canon(c, null, itemsAreParams));
+                b.add(canon(c, null, itemsAreParams, itemsAreSchemas));
             }
             return b.build();
         }
         return e;
+    }
+
+    /**
+     * C10: the {@code deprecated} flag of a schema goes last, matching the order in which the
+     * condensed reader builds it from an annotation.
+     */
+    private static NObjectElement moveDeprecatedLast(NObjectElement o) {
+        if (!o.get("deprecated").isPresent()) {
+            return o;
+        }
+        NObjectElementBuilder b = Tson.obj();
+        for (NElement m : Tson.members(o)) {
+            if (!"deprecated".equals(Tson.nameOf(m))) {
+                b.add(Tson.nameOf(m), Tson.valueOf(m));
+            }
+        }
+        b.add("deprecated", o.get("deprecated").get());
+        return b.build();
     }
 
     /**
